@@ -1,0 +1,130 @@
+/* ============================================
+   KONE MAINTENANCE INTELLIGENCE PORTAL STYLE
+   Designed by: PRANAV VIKRAMAN S S
+   Theme: KONE Blue & White (Corporate Standard)
+   ============================================ */
+
+/* === Global font & background === */
+body {
+    background-color: #f8f9fa;
+    color: #0b2545;
+    font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+/* === Sidebar === */
+[data-testid="stSidebar"] {
+    background-color: #ffffff !important;
+    border-right: 3px solid #0071B9;
+    box-shadow: 4px 0 8px rgba(0, 0, 0, 0.05);
+}
+
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    color: #0071B9 !important;
+}
+
+/* Sidebar filters and widgets */
+.stSelectbox, .stMultiSelect, .stDateInput {
+    font-size: 15px !important;
+}
+.stTextInput > div > div > input {
+    border-radius: 8px !important;
+    border: 1px solid #0071B9 !important;
+}
+
+/* === Main title === */
+h1 {
+    color: #0071B9;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+}
+
+/* === Subheaders === */
+h2, h3, h4 {
+    color: #005b96;
+    font-weight: 600;
+}
+
+/* === Charts container === */
+.block-container {
+    padding-top: 2rem !important;
+    padding-bottom: 3rem !important;
+}
+
+/* === DataFrame (Actionable Report, Tables) === */
+[data-testid="stDataFrame"] {
+    border: 2px solid #0071B9;
+    border-radius: 10px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Table header */
+[data-testid="stTable"] th {
+    background-color: #0071B9 !important;
+    color: white !important;
+    font-weight: bold !important;
+}
+
+/* === Buttons === */
+button[kind="primary"],
+.stDownloadButton > button {
+    background-color: #0071B9 !important;
+    color: white !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    padding: 8px 16px !important;
+    border: none !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+button[kind="primary"]:hover,
+.stDownloadButton > button:hover {
+    background-color: #005b96 !important;
+    transform: translateY(-1px);
+}
+
+/* === Info / Warning / Success boxes === */
+[data-testid="stAlert"] {
+    border-radius: 8px !important;
+    border-left: 6px solid #0071B9 !important;
+    background-color: #eaf3fb !important;
+}
+
+/* === Footer === */
+footer {
+    visibility: hidden;
+}
+
+footer:after {
+    content: "© 2025 KONE Digital Maintenance | Developed by PRANAV VIKRAMAN S S";
+    visibility: visible;
+    display: block;
+    text-align: center;
+    color: #0071B9;
+    font-size: 13px;
+    padding: 1rem 0;
+}
+
+/* === Scrollbar styling === */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-thumb {
+    background: #0071B9;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #005b96;
+}
+
+/* === Hover glow for charts === */
+.js-plotly-plot {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.js-plotly-plot:hover {
+    transform: scale(1.01);
+    box-shadow: 0 0 20px rgba(0, 113, 185, 0.2);
+}
