@@ -7,9 +7,20 @@ import tempfile
 from docx import Document
 import os
 
-# -----------------------------------------------------------
-# CONFIGURATION
-# -----------------------------------------------------------
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Build full path to your CSV file
+KPID_CSV_PATH = os.path.join(CURRENT_DIR, "kpid_name.csv")
+
+# Now safely read your file
+try:
+    kpid_data = pd.read_csv(KPID_CSV_PATH)
+    st.success("✅ KPI Name mapping file loaded successfully.")
+except Exception as e:
+    st.error(f"Failed to load kpid_name.csv: {e}")
+
+
 FIXED_LOOKUP_FILE = "kpid_names.csv"  # must exist in same folder
 OUTPUT_EXCEL_FILE = "Elevator_KPI_Final_Report.xlsx"
 
