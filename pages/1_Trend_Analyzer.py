@@ -226,13 +226,18 @@ else:
 std_factor = st.sidebar.slider("Peak/Low Sensitivity", 0.5, 3.0, 1.0, 0.1)
 
 # ---------------- Apply Filters ----------------
-mask = (
-    df[eq_col].isin(selected_eq) &
-    df[floor_col].isin(selected_floors) &
-    df["_ckpi_norm"].isin(selected_kpis) &
-    (df[date_col].dt.date >= start_date) & (df[date_col].dt.date <= end_date)
-)
-df_filtered = df[mask].copy()
+@st.cache_data(show_spinner=False)
+def filter_data(df, eqs, floors, kpis, date_col, start_date, end_date):
+    mask = (
+        df[eq_col].isin(eqs) &
+        df[floor_col].isin(floors) &
+        df["_ckpi_norm"].isin(kpis) &
+        (df[date_col].dt.date >= start_date) & (df[date_col].dt.date <= end_date)
+    )
+    return df[mask].copy()
+
+df_filtered = filter_data(df, selected_eq, selected_floors, selected_kpis, date_col, start_date, end_date)
+#-----------------changed file above-----------------------------
 
 if df_filtered.empty:
     st.warning("No data after applying filters.")
