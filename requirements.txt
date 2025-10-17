@@ -5,4 +5,5 @@ plotly
 openpyxl
 prophet
 python-docx
+xlrd==2.0.1
 
