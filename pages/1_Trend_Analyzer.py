@@ -75,7 +75,37 @@ def read_file(uploaded):
     if name.endswith(".json"):
         return pd.read_json(uploaded)
     return pd.read_csv(uploaded)
+#----------------------------changed file down below--------------------------
 
+@st.cache_data(show_spinner=False)
+def read_input_file(uploaded):
+    """
+    Accept either an UploadedFile (streamlit) or None with session-saved path.
+    Returns a dataframe or raises.
+    """
+    if uploaded is not None:
+        try:
+            df = read_file_from_uploaded(uploaded)
+        except Exception as e:
+            raise RuntimeError(f"Could not read uploaded file: {e}")
+        try:
+            save_uploaded_file(uploaded)
+        except Exception:
+            pass
+        return df
+    else:
+        saved_path = get_uploaded_file()
+        if saved_path:
+            try:
+                df = read_file_from_path(saved_path)
+                return df
+            except Exception as e:
+                raise RuntimeError(f"Could not read saved file at {saved_path}: {e}")
+        else:
+            return None
+
+
+#-------------------------changed file above-----------------
 def parse_dates(df, col):
     df[col] = pd.to_datetime(df[col], dayfirst=False, errors="coerce")
     return df
