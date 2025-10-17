@@ -1,222 +1,156 @@
 # app.py
 import streamlit as st
 import pandas as pd
-import io
-import math
 import json
+import io
+import tempfile
 from docx import Document
-from docx.shared import Pt, Inches, RGBColor
-from docx.enum.section import WD_ORIENT
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
-
-st.set_page_config(page_title="KPI Word Report", layout="wide")
-st.title("KPI Report Generator (KONE Elevator Analysis)")
+import os
 
 # -----------------------------------------------------------
-# KPI definitions
-KPI_MAP = {
-    "Door Friction": "doorFriction",
-    "Door Speed Error": "cumulativeDoorSpeedError",
-    "Landing Door Lock Hook Closing Time": "lockHookClosingTime",
-    "Landing Door Lock Hook Open Time": "lockHookTime",
-    "Maximum Force During Coupler Compress": "maximumForceDuringCompress",
-    "Landing Door Lock Roller Clearance": "landingDoorLockRollerClearance",
-}
+# CONFIGURATION
+# -----------------------------------------------------------
+FIXED_LOOKUP_FILE = "kpid_names.csv"  # must exist in same folder
+OUTPUT_EXCEL_FILE = "Elevator_KPI_Final_Report.xlsx"
+
+st.set_page_config(page_title="Live Elevator KPI Report", layout="wide")
+st.title("📊 Live Elevator KPI Data → Named Excel Report")
+st.write("Upload your live elevator JSON or Word file. The app automatically merges with fixed KPI names and gives you a final Excel report.")
 
 # -----------------------------------------------------------
-# Colors (business-look)
-COLOR_HEADER = "D9D9D9"   # header gray
-COLOR_PRESENT = "FFF200"  # rich yellow
-COLOR_MISSING = "92D050"  # rich green
-COLOR_BORDER = "000000"
+# HELPER FUNCTIONS
+# -----------------------------------------------------------
 
-def safe_float(v):
+def load_fixed_lookup():
+    """Read the fixed CSV (ID,Name) mapping."""
     try:
-        return float(v)
-    except Exception:
+        df_lookup = pd.read_csv(FIXED_LOOKUP_FILE, header=None)
+        df_lookup.columns = ["ID", "Name"]
+        df_lookup["ID"] = df_lookup["ID"].astype(str).str.strip()
+        return df_lookup
+    except Exception as e:
+        st.error(f"❌ Failed to read fixed lookup file: {e}")
         return None
 
-def set_cell_shading_hex(cell, hex_color):
-    """Set background color of docx cell"""
-    tc = cell._tc
-    tcPr = tc.get_or_add_tcPr()
-    shd = OxmlElement("w:shd")
-    shd.set(qn("w:fill"), hex_color)
-    tcPr.append(shd)
-
-def set_cell_border(cell, color="000000", size="6"):
-    """Draw grid around cell"""
-    tc = cell._tc
-    tcPr = tc.get_or_add_tcPr()
-    for edge in ("top","left","bottom","right"):
-        tag = OxmlElement(f"w:{edge}")
-        tag.set(qn("w:val"), "single")
-        tag.set(qn("w:sz"), size)
-        tag.set(qn("w:space"), "0")
-        tag.set(qn("w:color"), color)
-        tcPr.append(tag)
-
-# -----------------------------------------------------------
-def build_word_report(df):
-    df = df.copy()
-    df.columns = [str(c).strip() for c in df.columns]
-    cols = {c.lower(): c for c in df.columns}
-    ckpi_col = cols.get("ckpi")
-    date_col = cols.get("ckpi_statistics_date") or cols.get("date")
-    floor_col = cols.get("floor")
-    ave_col = cols.get("ave")
-
-    if not (ckpi_col and date_col and floor_col and ave_col):
-        raise ValueError("Missing required columns (ckpi, ckpi_statistics_date, floor, ave).")
-
-    # normalize
-    df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
-    df = df.dropna(subset=[date_col])
-    df[date_col] = df[date_col].dt.strftime("%Y-%m-%d")
-    df[floor_col] = pd.to_numeric(df[floor_col], errors="coerce").astype("Int64")
-    df[ave_col] = pd.to_numeric(df[ave_col], errors="coerce")
-
-    # map ckpi to canonical keys
-    lower_map = {}
-    for dname, key in KPI_MAP.items():
-        lower_map[dname.lower()] = key
-        lower_map[key.lower()] = key
-    df["ckpi_key"] = df[ckpi_col].astype(str).str.lower().map(lower_map)
-
-    # filter only our six KPIs
-    df = df[df["ckpi_key"].notna()]
-    if df.empty:
-        raise ValueError("No matching CKPI data found for the defined 6 KPIs.")
-
-    doc = Document()
-    section = doc.sections[-1]
-    section.orientation = WD_ORIENT.LANDSCAPE
-    section.page_width = Inches(14)
-    section.page_height = Inches(8.5)
-    section.left_margin = Inches(0.4)
-    section.right_margin = Inches(0.4)
-    section.top_margin = Inches(0.4)
-    section.bottom_margin = Inches(0.4)
-
-    all_dates = sorted(df[date_col].unique())
-    for i, d in enumerate(all_dates):
-        if i > 0:
-            doc.add_page_break()
-        p = doc.add_paragraph()
-        run = p.add_run(f"KPI Report — {d}")
-        run.bold = True
-        run.font.size = Pt(14)
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        doc.add_paragraph("")
-
-        date_df = df[df[date_col] == d]
-        floors = sorted(date_df[floor_col].dropna().unique())
-        if not floors:
-            doc.add_paragraph("No floor data available.")
-            continue
-
-        # decide font size dynamically
-        font_size = 10
-        if len(floors) > 20:
-            font_size = 8
-        elif len(floors) > 15:
-            font_size = 9
-
-        # prepare table columns
-        cols = ["CKPI", "No Corrective Action Required", "Corrective Action Required"] + [f"Floor {f}" for f in floors]
-        table = doc.add_table(rows=1, cols=len(cols))
-        table.style = "Table Grid"
-        table.autofit = True
-
-        hdr = table.rows[0].cells
-        for j, name in enumerate(cols):
-            hdr[j].text = name
-            set_cell_shading_hex(hdr[j], COLOR_HEADER)
-            set_cell_border(hdr[j], COLOR_BORDER)
-            para = hdr[j].paragraphs[0]
-            para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            for run in para.runs:
-                run.bold = True
-                run.font.size = Pt(font_size)
-
-        # add KPI rows
-        for display, key in KPI_MAP.items():
-            # gather all entries for this KPI and date
-            kdf = date_df[date_df["ckpi_key"] == key]
-            if kdf.empty:
-                continue
-            # sometimes multiple rows per floor
-            floors_with_data = kdf[floor_col].unique()
-
-            # add as many rows as needed (one per measurement group)
-            for idx in range(len(kdf)):
-                row = table.add_row().cells
-                row[0].text = display
-                row[1].text = ""
-                row[2].text = ""
-                for f in floors:
-                    cell = row[3 + floors.index(f)]
-                    match = kdf[kdf[floor_col] == f]
-                    if not match.empty:
-                        val = match.iloc[0][ave_col]
-                        if pd.notna(val):
-                            cell.text = f"{val:.2f}"
-                            set_cell_shading_hex(cell, COLOR_PRESENT)
-                        else:
-                            cell.text = "-"
-                            set_cell_shading_hex(cell, COLOR_MISSING)
-                    else:
-                        cell.text = "-"
-                        set_cell_shading_hex(cell, COLOR_MISSING)
-                    set_cell_border(cell, COLOR_BORDER)
-                    para = cell.paragraphs[0]
-                    para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    for run in para.runs:
-                        run.font.size = Pt(font_size)
-                        run.font.color.rgb = RGBColor(0, 0, 0)
-
-        doc.add_paragraph("")
-
-    out = io.BytesIO()
-    doc.save(out)
-    out.seek(0)
-    return out
-
-# -----------------------------------------------------------
-# Upload handler
-uploaded = st.file_uploader("Upload KPI Excel/CSV/JSON", type=["xlsx", "xls", "csv", "json"])
-if uploaded:
+def read_json_from_word(uploaded_file):
+    """If a Word file (.docx) contains embedded JSON text, extract it."""
     try:
-        if uploaded.name.lower().endswith((".xlsx", ".xls")):
-            xls = pd.ExcelFile(uploaded)
-            sheet = None
-            for s in xls.sheet_names:
-                c = [x.lower() for x in pd.read_excel(xls, sheet_name=s, nrows=1).columns]
-                if "ckpi" in c:
-                    sheet = s
-                    break
-            if sheet is None:
-                sheet = xls.sheet_names[0]
-            df = pd.read_excel(xls, sheet_name=sheet)
-        elif uploaded.name.lower().endswith(".csv"):
-            df = pd.read_csv(uploaded)
+        doc = Document(uploaded_file)
+        full_text = "\n".join(p.text for p in doc.paragraphs)
+        # Try to find JSON content inside
+        json_start = full_text.find("{")
+        json_end = full_text.rfind("}")
+        if json_start != -1 and json_end != -1:
+            json_str = full_text[json_start:json_end+1]
+            return json.loads(json_str)
         else:
-            data = json.load(uploaded)
-            if isinstance(data, dict):
-                for k, v in data.items():
-                    if isinstance(v, list) and len(v) > 0 and isinstance(v[0], dict):
-                        df = pd.DataFrame(v)
-                        break
-                else:
-                    df = pd.DataFrame([data])
-            else:
-                df = pd.DataFrame(data)
-
-        buf = build_word_report(df)
-        st.success("✅ Report generated successfully.")
-        st.download_button("Download Word Report", buf, file_name="KPI_Report.docx",
-                           mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+            st.error("No JSON data found inside the Word file.")
+            return None
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Failed to extract JSON from Word: {e}")
+        return None
+
+def find_messages(obj):
+    """Search for list of dicts inside the JSON structure."""
+    if isinstance(obj, list) and obj and isinstance(obj[0], dict):
+        return obj
+    if isinstance(obj, dict):
+        for key in ["messages", "data", "records", "items"]:
+            if key in obj and isinstance(obj[key], list):
+                return obj[key]
+    return None
+
+def safe_load_json(uploaded_file):
+    try:
+        return json.load(uploaded_file)
+    except Exception as e:
+        st.error(f"Failed to parse JSON: {e}")
+        return None
+
+# -----------------------------------------------------------
+# FILE UPLOAD SECTION
+# -----------------------------------------------------------
+
+uploaded_file = st.file_uploader("Upload live JSON or Word file containing JSON", type=["json", "docx"])
+
+if uploaded_file:
+    lookup_df = load_fixed_lookup()
+    if lookup_df is None:
+        st.stop()
+
+    st.info(f"✅ Fixed lookup file '{FIXED_LOOKUP_FILE}' loaded successfully with {len(lookup_df)} entries.")
+
+    with st.spinner("Reading uploaded file..."):
+        # Determine file type
+        if uploaded_file.name.endswith(".docx"):
+            data = read_json_from_word(uploaded_file)
+        else:
+            data = safe_load_json(uploaded_file)
+
+        if data is None:
+            st.stop()
+
+        messages = find_messages(data)
+        if messages is None:
+            st.error("Could not find a list of message records in JSON. Ensure your file contains a 'messages' array.")
+            st.stop()
+
+        df_raw = pd.DataFrame(messages)
+        st.write("📋 Detected columns:", list(df_raw.columns))
+
+        # Expected columns
+        expected_cols = ["kpiId", "data", "floor", "timestamp"]
+        missing = [c for c in expected_cols if c not in df_raw.columns]
+        if missing:
+            st.warning(f"⚠️ Missing some keys: {missing}. The app will continue if partial data exists.")
+
+        # Select relevant data
+        available_cols = [c for c in expected_cols if c in df_raw.columns]
+        df_live = df_raw[available_cols].copy()
+
+        # Rename and prepare
+        rename_map = {
+            "kpiId": "ID",
+            "data": "KPI Value",
+            "floor": "Floor",
+            "timestamp": "Timestamp"
+        }
+        df_live = df_live.rename(columns=rename_map)
+        df_live["ID"] = df_live["ID"].astype(str).str.strip()
+
+        # Merge with fixed lookup
+        merged = pd.merge(df_live, lookup_df, on="ID", how="left")
+
+        # Reorder columns
+        final_cols = ["Name", "ID", "KPI Value", "Floor", "Timestamp"]
+        merged = merged[[c for c in final_cols if c in merged.columns]]
+
+        # Sort by timestamp
+        merged["Timestamp"] = pd.to_numeric(merged["Timestamp"], errors="coerce")
+        merged = merged.sort_values(by="Timestamp", ascending=True)
+
+        # Show preview
+        st.subheader("Merged Data Preview")
+        st.dataframe(merged.head(100))
+
+        st.success(f"Total records processed: {len(merged)}")
+
+        # Export Excel file to memory
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+            merged.to_excel(writer, index=False, sheet_name="Final_Report")
+        buffer.seek(0)
+
+        st.download_button(
+            label="⬇ Download Final Excel Report",
+            data=buffer.getvalue(),
+            file_name=OUTPUT_EXCEL_FILE,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        # Summary
+        if "Name" in merged.columns:
+            st.markdown("### Summary — Records by KPI")
+            summary = merged["Name"].value_counts().reset_index()
+            summary.columns = ["KPI Name", "Count"]
+            st.table(summary)
