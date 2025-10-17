@@ -6,7 +6,27 @@ import plotly.graph_objects as go
 from io import BytesIO
 from datetime import date, timedelta
 import subprocess, shlex
+import os
 
+
+UPLOAD_DIR = "backend/uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+def save_uploaded_file(uploaded_file):
+    """Save uploaded file both in memory and on disk."""
+    file_path = os.path.join(UPLOAD_DIR, uploaded_file.name)
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    # store in session
+    st.session_state['uploaded_file_path'] = file_path
+    st.session_state['uploaded_file_name'] = uploaded_file.name
+    return file_path
+
+def get_uploaded_file():
+    """Return file path if exists in session."""
+    return st.session_state.get('uploaded_file_path', None)
+
+#------changed code----------
 # ---------------- Page config ----------------
 st.set_page_config(page_title="CKPI Multi-KPI Analyzer", layout="wide")
 st.title("Make Trend Analysis for Different Equipments")
