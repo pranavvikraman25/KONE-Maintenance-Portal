@@ -173,11 +173,7 @@ except Exception as e:
     error_read = str(e)
 
 # Provide option to clear persisted file
-col_clear, _ = st.columns([1,6])
-with col_clear:
-    if st.button("❌ Remove uploaded file"):
-        clear_uploaded_file()
-        st.experimental_rerun()
+
 
 if error_read:
     st.error(error_read)
