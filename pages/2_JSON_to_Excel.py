@@ -1,26 +1,27 @@
 # app.py
-import streamlit as st
-import pandas as pd
 import json
 import io
 import tempfile
 from docx import Document
 import os
 from pathlib import Path
+import pandas as pd
+import streamlit as st
 
-
-
+# find where this file is running from
 current_dir = Path(__file__).parent
-
-# ✅ Build the full file path to your CSV
 lookup_file = current_dir / "kpid_names.csv"
 
-# ✅ Try reading it
+# Debug print
+st.write("🔍 Current script folder:", current_dir)
+st.write("🔍 Looking for:", lookup_file.resolve())
+
 try:
     kpi_lookup = pd.read_csv(lookup_file)
     st.success(f"✅ Loaded lookup file: {lookup_file.name}")
 except Exception as e:
     st.error(f"❌ Failed to read fixed lookup file: {e}")
+
 
 
 FIXED_LOOKUP_FILE = "kpid_names.csv"  # must exist in same folder
