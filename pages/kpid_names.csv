@@ -1,0 +1,70 @@
+ID,Name on JSON
+3,Door Closing Time
+4,startDelay Time
+5,flightTime
+6,doorPreOpening Time
+2,door Oopening Time
+10,heatsinkTemperature
+11,controlBoard Temperature
+12,motorTemperature
+13,DCVoltage
+14,relativeEBCvalue
+15,relativePosition Drift
+17,KTWperQ
+18,LWD
+19,StartAccuracy
+20,Stopping Quality
+21,brakeACurrent
+22,brake AMovement
+23,brakeBMovement
+24,brakeBMovement
+25,constantSpeed Quality
+26,relativeEstimateError
+9,doorFriction
+8,closing Device Energy
+7,CCGBoardTeperature
+27,EFC
+28,currentAtNominalSpeed
+29,cooling Fan1Speed
+30,cooling Fan2Speed
+31,KDS12Erroneous Messages
+32,KDS12MissingMessages
+33,KDSIDisturbances
+34,Tts1Earroneous Messages
+35,Tts1MissingMessages
+36,Tes1Disturbances
+37,Tx2Erroneous Messages
+38,Tts2MissingMessages
+19,Ttx2Disturbances
+40,kodiErrorneousMessages
+41,Kodi Missing Messages
+42,KodiDisturbances
+43,landing DoorLockRollerClearan
+44,carDoorContactOpen Position
+45,lockHook Time
+46,cumulative DoorSpeedError
+47,maximumDoorSpeedError
+48,belt MovementlnCoupler Relaxation
+49,timelnCouplerrelaxation
+50,RTSlip
+51,aveslip
+52,maxSlip
+53,lockHookClosing Time
+54,rescueBatteryTemperature1
+55,rescueBattery Temperature2
+56,rescuellattery Temperatures
+57,rescueBatteryBoard Temperature
+58,rescue Battery PackVoltage
+59,rescueBatteryMaximum Cell Voltage
+60,rescue Battery Minimum Cell Voltage
+61,rescueBatteryRelativeBalancing
+62,rescueBatteryErroneous Messages
+63,rescueBattery Missing Messages
+64,rescueBatteryDisturbances
+65,mainSupplyVoltage U12
+66,main SupplyVoltage U23
+67,main Supply Voltage U31
+68,main SupplyMinimum Voltage
+69,mainSupplyMaximum Volta
+70,car Door Contact Close Position
+71,maximumForceDuringCompress
