@@ -1,35 +1,34 @@
+# 4_Anomaly_Chatbot_AI.py
 import streamlit as st
 import pandas as pd
-import subprocess, shlex, tempfile, os
-import os, shutil, subprocess
-import requests
-import json
+import requests, json, os, subprocess, shlex
 
-
-# Manually set Ollama path if not detected automatically
-os.environ["PATH"] += os.pathsep + r"C:\Users\PRANAV VIKRAMAN\AppData\Local\Programs\Ollama"
+# Optional dependency (OpenAI for cloud fallback)
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
 
 st.set_page_config(page_title="Anomaly Chatbot AI", layout="wide")
-
-st.title("🤖 Anomaly Detection Chatbot (Local AI – Llama 3)")
+st.title("🤖 Anomaly Detection Chatbot — Hybrid AI (Ollama + Cloud)")
 
 st.markdown("""
-This chatbot helps you analyze uploaded KPI data directly using **Llama 3 (via Ollama)** —  
-no API keys, no internet connection required.  
+This chatbot works in **dual mode**:
+- 🧠 **Offline Mode (Local)** → Uses **Llama 3 via Ollama**  
+- ☁️ **Online Mode (Cloud)** → Uses **OpenAI API (gpt-4o-mini)**  
 
-You can ask questions like:
-- *“Which EQ had the highest Door Friction last month?”*  
-- *“How many anomalies were recorded in July?”*  
-- *“Which floor had maximum peaks?”*  
+Ask questions like:
+- *Which EQ had the highest door friction last month?*  
+- *How many anomalies occurred in July?*
 """)
 
-# --- Upload Data ---
+# --- File Upload ---
 uploaded = st.file_uploader("📂 Upload your KPI dataset", type=["csv", "xlsx", "json"])
 if not uploaded:
-    st.info("Upload a data file to begin chatting with your KPIs.")
+    st.info("Upload a file to begin chatting with your KPI data.")
     st.stop()
 
-# Read file flexibly
+# --- Load Data ---
 try:
     if uploaded.name.endswith(".csv"):
         df = pd.read_csv(uploaded)
@@ -41,53 +40,74 @@ except Exception as e:
     st.error(f"Error reading file: {e}")
     st.stop()
 
-st.success(f"✅ File loaded successfully — {len(df)} records found.")
+st.success(f"✅ File loaded — {len(df)} records found.")
 st.dataframe(df.head())
 
-# --- Question Input ---
-query = st.text_area("💬 Ask your question to the AI:", placeholder="Example: Which EQ has the highest average doorFriction?")
+# --- AI Query Section ---
+query = st.text_area("💬 Ask your question:", placeholder="Example: Which EQ has the highest average door friction?")
 ask_button = st.button("Ask")
 
-# --- Ollama Query Function ---
+# --- Check Ollama availability ---
+def is_ollama_running():
+    try:
+        res = requests.get("http://localhost:11434")
+        return res.status_code == 200
+    except:
+        return False
 
+# --- Try connecting to Ollama first ---
+OLLAMA_AVAILABLE = is_ollama_running()
+if OLLAMA_AVAILABLE:
+    st.success("🟢 Local Llama 3 (Ollama) detected — running in Offline Mode.")
+else:
+    st.warning("☁️ Ollama not found — switching to Cloud AI mode.")
+
+# --- AI response handler ---
 def query_ollama(prompt, model="llama3"):
-    """Send prompt to local Ollama via its HTTP API (no path or encoding issues)."""
+    """Send prompt to local Ollama model"""
     url = "http://localhost:11434/api/generate"
     data = {"model": model, "prompt": prompt}
-
     try:
         response = requests.post(url, json=data, stream=True)
         output = ""
         for line in response.iter_lines():
             if line:
-                try:
-                    res = json.loads(line.decode("utf-8"))
-                    if "response" in res:
-                        output += res["response"]
-                except Exception:
-                    continue
+                res = json.loads(line.decode("utf-8"))
+                if "response" in res:
+                    output += res["response"]
         return output.strip() if output else "⚠️ No response from Ollama."
     except Exception as e:
-        return f"❌ Could not connect to Ollama. Make sure it's running. Error: {e}"
+        return f"❌ Ollama error: {e}"
 
-
-# --- Process Question ---
-if ask_button and query:
-    with st.spinner("💭 Thinking... Llama 3 is analyzing your data..."):
-        # Save dataframe temporarily to describe structure
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".csv")
-        df.head(25).to_csv(tmp.name, index=False)
-        tmp.flush()
-
-        prompt = (
-            f"You are an expert maintenance AI working for KONE.\n"
-            f"Here is a dataset sample (first 25 rows):\n"
-            f"{df.head(25).to_csv(index=False)}\n\n"
-            f"Answer clearly and briefly this question:\n{query}\n"
-            f"Provide numeric details when possible and respond as a maintenance analyst."
+def query_openai(prompt):
+    """Send prompt to OpenAI API (cloud fallback)"""
+    if not os.getenv("OPENAI_API_KEY"):
+        return "❌ Missing OpenAI API key. Set it in your environment or .env file."
+    try:
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "system", "content": "You are an expert KONE maintenance analyst."},
+                      {"role": "user", "content": prompt}]
         )
+        return resp.choices[0].message.content.strip()
+    except Exception as e:
+        return f"☁️ OpenAI Error: {e}"
 
-        response = query_ollama(prompt)
+# --- Generate answer ---
+if ask_button and query:
+    with st.spinner("💭 Thinking... Analyzing your data..."):
+        df_preview = df.head(25).to_csv(index=False)
+        prompt = (
+            f"You are an AI maintenance assistant for KONE elevators.\n"
+            f"Dataset sample (first 25 rows):\n{df_preview}\n\n"
+            f"Question: {query}\n"
+            f"Analyze the data logically and respond in a short, precise format."
+        )
+        if OLLAMA_AVAILABLE:
+            answer = query_ollama(prompt)
+        else:
+            answer = query_openai(prompt)
+
         st.markdown("### 🧠 AI Response")
-        st.write(response)
-        os.unlink(tmp.name)
+        st.write(answer)
