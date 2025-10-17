@@ -6,19 +6,21 @@ import io
 import tempfile
 from docx import Document
 import os
+from pathlib import Path
 
 
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Build full path to your CSV file
-KPID_CSV_PATH = os.path.join(CURRENT_DIR, "kpid_name.csv")
+current_dir = Path(__file__).parent
 
-# Now safely read your file
+# ✅ Build the full file path to your CSV
+lookup_file = current_dir / "kpid_names.csv"
+
+# ✅ Try reading it
 try:
-    kpid_data = pd.read_csv(KPID_CSV_PATH)
-    st.success("✅ KPI Name mapping file loaded successfully.")
+    kpi_lookup = pd.read_csv(lookup_file)
+    st.success(f"✅ Loaded lookup file: {lookup_file.name}")
 except Exception as e:
-    st.error(f"Failed to load kpid_name.csv: {e}")
+    st.error(f"❌ Failed to read fixed lookup file: {e}")
 
 
 FIXED_LOOKUP_FILE = "kpid_names.csv"  # must exist in same folder
