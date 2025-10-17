@@ -1,4 +1,4 @@
-# app.py
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -6,22 +6,36 @@ import plotly.graph_objects as go
 from datetime import date, timedelta
 import subprocess, shlex
 import os
+from backend.backend_utils import save_uploaded_file, get_uploaded_file, clear_uploaded_file
 from io import BytesIO
 
-# Import backend helpers (ensure backend/backend_utils.py exists with save/get/clear functions)
-from backend.backend_utils import save_uploaded_file, get_uploaded_file, clear_uploaded_file
 
+UPLOAD_DIR = "backend/uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+def save_uploaded_file(uploaded_file):
+    """Save uploaded file both in memory and on disk."""
+    file_path = os.path.join(UPLOAD_DIR, uploaded_file.name)
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    # store in session
+    st.session_state['uploaded_file_path'] = file_path
+    st.session_state['uploaded_file_name'] = uploaded_file.name
+    return file_path
+
+def get_uploaded_file():
+    """Return file path if exists in session."""
+    return st.session_state.get('uploaded_file_path', None)
+
+#------changed code----------
 # ---------------- Page config ----------------
 st.set_page_config(page_title="CKPI Multi-KPI Analyzer", layout="wide")
 st.title("Make Trend Analysis for Different Equipments")
 
 # ---------------- Load Custom CSS (KONE Theme) ----------------
 def load_css(file_name):
-    try:
-        with open(file_name) as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-    except FileNotFoundError:
-        pass
+    with open(file_name) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 load_css("assets/style.css")
 
@@ -32,6 +46,7 @@ with st.sidebar:
     except Exception:
         st.write("")
     st.markdown("### KONE — Maintenance Dashboard")
+    
     st.markdown("---")
 
 # ---------------- Thresholds (normalized keys) ----------------
@@ -49,8 +64,7 @@ def normalize_text(s: str):
     if s is None: return ""
     return "".join(ch for ch in str(s).lower() if ch.isalnum())
 
-def read_file_from_uploaded(uploaded):
-    """Read a pandas DataFrame from a Streamlit uploaded file (UploadedFile)."""
+def read_file(uploaded):
     name = uploaded.name.lower()
     if name.endswith(".xlsx"):
         return pd.read_excel(uploaded, engine="openpyxl")
@@ -60,50 +74,7 @@ def read_file_from_uploaded(uploaded):
         return pd.read_csv(uploaded)
     if name.endswith(".json"):
         return pd.read_json(uploaded)
-    # fallback
     return pd.read_csv(uploaded)
-
-def read_file_from_path(path):
-    """Read a pandas DataFrame from a saved file path."""
-    name = str(path).lower()
-    if name.endswith(".xlsx") or name.endswith(".xls"):
-        return pd.read_excel(path, engine="openpyxl")
-    if name.endswith(".csv"):
-        return pd.read_csv(path)
-    if name.endswith(".json"):
-        return pd.read_json(path)
-    # fallback try CSV
-    return pd.read_csv(path)
-
-def read_input_file(uploaded):
-    """
-    Accept either an UploadedFile (streamlit) or None with session-saved path.
-    Returns a dataframe or raises.
-    """
-    if uploaded is not None:
-        # If user just uploaded a file, save it persistently and read it
-        try:
-            df = read_file_from_uploaded(uploaded)
-        except Exception as e:
-            raise RuntimeError(f"Could not read uploaded file: {e}")
-        # persist to backend uploads (so other pages can reuse)
-        try:
-            save_uploaded_file(uploaded)
-        except Exception:
-            # save failure shouldn't block reading
-            pass
-        return df
-    else:
-        # check session for previously uploaded file path
-        saved_path = get_uploaded_file()
-        if saved_path:
-            try:
-                df = read_file_from_path(saved_path)
-                return df
-            except Exception as e:
-                raise RuntimeError(f"Could not read saved file at {saved_path}: {e}")
-        else:
-            return None
 
 def parse_dates(df, col):
     df[col] = pd.to_datetime(df[col], dayfirst=False, errors="coerce")
@@ -160,30 +131,18 @@ def ollama_summarize(text, model="mistral"):
         pass
     return None
 
-# ---------------- Upload / persistence logic ----------------
-st.markdown("### Upload your KPI file")
+# ---------------- Upload ----------------
 uploaded = st.file_uploader("Upload KPI file (xlsx/xls/csv/json)", type=["xlsx","xls","csv","json"])
+if not uploaded:
+    st.info("Upload a KPI file to begin. Required columns: eq, ckpi, ckpi_statistics_date, floor, ave")
+    st.stop()
 
-# If user uploaded a file right now, we will read it and save to backend uploads
-df = None
-error_read = None
 try:
-    df = read_input_file(uploaded)
+    df = read_file(uploaded)
 except Exception as e:
-    error_read = str(e)
-
-# Provide option to clear persisted file
-
-
-if error_read:
-    st.error(error_read)
+    st.error(f"Could not read file: {e}")
     st.stop()
 
-if df is None:
-    st.info("No uploaded file found. Upload a file to begin.")
-    st.stop()
-
-# ---------------- Now validate & continue with existing logic ----------------
 if df.empty:
     st.error("Uploaded file is empty.")
     st.stop()
@@ -192,7 +151,7 @@ cols_lower = {c.lower(): c for c in df.columns}
 required = ["ckpi_statistics_date","ave","ckpi","floor","eq"]
 for req in required:
     if req not in cols_lower:
-        st.error(f"Required column '{req}' not found in file. Found columns: {list(df.columns)}")
+        st.error(f"Required column '{req}' not found in file.")
         st.stop()
 
 date_col, ave_col, ckpi_col, floor_col, eq_col = [cols_lower[c] for c in required]
@@ -324,7 +283,8 @@ for kpi_norm in selected_kpis:
             tickformat="%b %d, %Y",
             tickangle=-60,
             showgrid=True,
-            tickmode="auto"
+            tickmode="auto",
+            nticks=len(df_floor[date_col].unique())  # keep natural spacing
         )
     )
 
@@ -383,3 +343,6 @@ else:
 # ---------------- Footer ----------------
 st.markdown("---")
 st.caption("© 2025 KONE Internal Dashboard | Developed by PRANAV VIKRAMAN S S")
+
+
+
