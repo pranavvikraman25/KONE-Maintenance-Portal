@@ -10,7 +10,8 @@ import streamlit as st
 
 # find where this file is running from
 current_dir = Path(__file__).parent
-lookup_file = current_dir / "kpid_names.csv"
+lookup_file = Path(__file__).parents[1] / "assets" / "kpid_names.csv"
+
 
 # Debug print
 st.write("🔍 Current script folder:", current_dir)
