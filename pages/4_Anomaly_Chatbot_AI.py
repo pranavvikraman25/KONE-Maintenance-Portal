@@ -118,8 +118,12 @@ if ask_button and query:
         )
         if OLLAMA_AVAILABLE:
             answer = query_ollama(prompt)
-        else:
+        elif os.getenv("OPENAI_API_KEY"):
             answer = query_openai(prompt)
+        elif os.getenv("GROQ_API_KEY"):
+            answer = query_groq(prompt)
+        else:
+            answer = "❌ No AI backend available."
 
         st.markdown("### 🧠 AI Response")
         st.write(answer)
