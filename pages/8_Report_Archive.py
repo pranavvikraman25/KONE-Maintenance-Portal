@@ -2,7 +2,15 @@ import streamlit as st
 import os
 import pandas as pd
 
+UPLOAD_DIR = "backend/uploads"
+files = os.listdir(UPLOAD_DIR)
+
 st.title("📂 Report Archive")
+if not files:
+    st.info("No reports or uploads yet.")
+else:
+    for f in files:
+        st.download_button(label=f"Download {f}", data=open(os.path.join(UPLOAD_DIR, f), "rb"), file_name=f)
 
 st.markdown("""
 This section lists all available reports from the `/reports` folder  
