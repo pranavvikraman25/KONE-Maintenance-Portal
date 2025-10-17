@@ -1,6 +1,10 @@
 import streamlit as st
 import pandas as pd
 import subprocess, shlex, tempfile, os
+import os
+
+# Manually set Ollama path if not detected automatically
+os.environ["PATH"] += os.pathsep + r"C:\Users\PRANAV VIKRAMAN\AppData\Local\Programs\Ollama"
 
 st.set_page_config(page_title="Anomaly Chatbot AI", layout="wide")
 
