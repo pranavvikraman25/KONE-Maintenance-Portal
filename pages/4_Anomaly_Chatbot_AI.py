@@ -80,28 +80,47 @@ def query_ollama(prompt, model="llama3"):
         return f"❌ Ollama error: {e}"
 
 def query_groq(prompt):
-    """Use Groq free LLMs (Llama3, Mixtral, Gemma)"""
-    try:
-        import requests
-        GROQ_KEY = os.getenv("GROQ_API_KEY")
-        if not GROQ_KEY:
-            return "❌ Missing GROQ_API_KEY. Add it in your secrets."
+    """Use Groq free LLMs (Llama3, Mixtral, Gemma) — with detailed error handling"""
+    import requests, os, json
 
-        headers = {
-            "Authorization": f"Bearer {GROQ_KEY}",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": "llama3-70b-8192",
-            "messages": [
-                {"role": "system", "content": "You are a KONE maintenance AI analyst."},
-                {"role": "user", "content": prompt}
-            ]
-        }
-        resp = requests.post("https://api.groq.com/openai/v1/chat/completions",
-                             headers=headers, json=data, timeout=60)
+    GROQ_KEY = os.getenv("GROQ_API_KEY")
+    if not GROQ_KEY:
+        return "❌ Missing GROQ_API_KEY. Add it in your Streamlit Secrets."
+
+    headers = {
+        "Authorization": f"Bearer {GROQ_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    # Try using the best available Groq model
+    data = {
+        "model": "llama3-70b-8192",  # You can change to "mixtral-8x7b" or "gemma2-9b-it"
+        "messages": [
+            {"role": "system", "content": "You are a senior KONE maintenance data analyst."},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.6,
+        "max_tokens": 600
+    }
+
+    try:
+        resp = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers=headers, json=data, timeout=90
+        )
         out = resp.json()
+
+        # ✅ Check if there’s an error field
+        if "error" in out:
+            return f"⚠️ Groq API error: {out['error'].get('message', 'Unknown error')}"
+
+        # ✅ Check choices
+        if "choices" not in out or len(out["choices"]) == 0:
+            return f"⚠️ Unexpected Groq response:\n{json.dumps(out, indent=2)}"
+
+        # ✅ Extract the model output
         return out["choices"][0]["message"]["content"].strip()
+
     except Exception as e:
         return f"☁️ Groq API Error: {e}"
 
@@ -117,13 +136,19 @@ if ask_button and query:
             f"Analyze the data logically and respond in a short, precise format."
         )
         if OLLAMA_AVAILABLE:
+            backend_used = "🧠 Local Ollama"
             answer = query_ollama(prompt)
         elif os.getenv("OPENAI_API_KEY"):
+            backend_used = "☁️ OpenAI Cloud"
             answer = query_openai(prompt)
         elif os.getenv("GROQ_API_KEY"):
+            backend_used = "☁️ Groq Cloud (Free Llama 3)"
             answer = query_groq(prompt)
         else:
-            answer = "❌ No AI backend available."
-
+            backend_used = "❌ No AI backend found"
+            answer = "Please configure either Ollama, OpenAI, or Groq API keys."
+        
+        st.markdown(f"### 💬 Backend Used: {backend_used}")
         st.markdown("### 🧠 AI Response")
         st.write(answer)
+        
