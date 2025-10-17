@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
 import subprocess, shlex, tempfile, os
-import os
-import shutil
+import os, shutil, subprocess
 
 # Manually set Ollama path if not detected automatically
 os.environ["PATH"] += os.pathsep + r"C:\Users\PRANAV VIKRAMAN\AppData\Local\Programs\Ollama"
@@ -49,28 +48,24 @@ ask_button = st.button("Ask")
 # --- Ollama Query Function ---
 
 def query_ollama(prompt, model="llama3"):
-    """Send prompt to local Ollama model and return AI response (auto-detect path)."""
+    """Works for local Windows environment — calls Ollama via full path or PATH."""
     try:
-        # Try to detect Ollama automatically
         OLLAMA_PATH = shutil.which("ollama")
         if OLLAMA_PATH is None:
-            # Fallback — manually set your Ollama full path here if auto-detect fails
+            # Use full Windows path manually here
             OLLAMA_PATH = r"C:\Users\PRANAV VIKRAMAN\AppData\Local\Programs\Ollama\ollama.exe"
 
+        # Use shell=True for Windows compatibility
         cmd = f'"{OLLAMA_PATH}" run {model} "{prompt}"'
-
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=90, shell=True)
+
         if result.returncode == 0:
             return result.stdout.strip()
         else:
-            return f"⚠️ Ollama returned an error: {result.stderr}"
+            return f"⚠️ Ollama returned an error:\n{result.stderr}"
 
-    except FileNotFoundError:
-        return "❌ Ollama not found. Please install it from https://ollama.com/download and restart."
-    except subprocess.TimeoutExpired:
-        return "⏳ Model took too long to respond. Try shortening your query."
     except Exception as e:
-        return f"❌ Unexpected error: {e}"
+        return f"❌ Error running Ollama: {e}"
 
 
 # --- Process Question ---
