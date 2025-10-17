@@ -79,20 +79,32 @@ def query_ollama(prompt, model="llama3"):
     except Exception as e:
         return f"❌ Ollama error: {e}"
 
-def query_openai(prompt):
-    """Send prompt to OpenAI API (cloud fallback)"""
-    if not os.getenv("OPENAI_API_KEY"):
-        return "❌ Missing OpenAI API key. Set it in your environment or .env file."
+def query_groq(prompt):
+    """Use Groq free LLMs (Llama3, Mixtral, Gemma)"""
     try:
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        resp = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "system", "content": "You are an expert KONE maintenance analyst."},
-                      {"role": "user", "content": prompt}]
-        )
-        return resp.choices[0].message.content.strip()
+        import requests
+        GROQ_KEY = os.getenv("GROQ_API_KEY")
+        if not GROQ_KEY:
+            return "❌ Missing GROQ_API_KEY. Add it in your secrets."
+
+        headers = {
+            "Authorization": f"Bearer {GROQ_KEY}",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": "llama3-70b-8192",
+            "messages": [
+                {"role": "system", "content": "You are a KONE maintenance AI analyst."},
+                {"role": "user", "content": prompt}
+            ]
+        }
+        resp = requests.post("https://api.groq.com/openai/v1/chat/completions",
+                             headers=headers, json=data, timeout=60)
+        out = resp.json()
+        return out["choices"][0]["message"]["content"].strip()
     except Exception as e:
-        return f"☁️ OpenAI Error: {e}"
+        return f"☁️ Groq API Error: {e}"
+
 
 # --- Generate answer ---
 if ask_button and query:
