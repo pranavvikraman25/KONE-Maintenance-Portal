@@ -28,7 +28,7 @@ with st.sidebar:
                "and generate actionable insights for predictive maintenance.")
 
 # --- Main Page ---
-st.title("🧭 KONE Maintenance Intelligence Portal")
+st.title("KONE Maintenance Intelligence Portal")
 st.markdown("""
 Welcome to **KONE’s Centralized Maintenance Dashboard**,  
 a unified portal designed to support the **Engineering Analytics** and **Field Maintenance** teams.
@@ -94,3 +94,4 @@ st.markdown("""
 
 st.markdown("---")
 st.caption("© 2025 KONE Digital Maintenance | Developed by PRANAV VIKRAMAN S S")
+
