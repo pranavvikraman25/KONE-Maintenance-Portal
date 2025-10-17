@@ -259,9 +259,10 @@ for kpi_norm in selected_kpis:
         hovermode="closest",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         xaxis=dict(
-            tickformat="%b %d, %Y",  # <-- show only date (e.g., Oct 2, 2025)
+            tickformat="%b %d, %Y",
+            tickangle=-60,
+            tickmode="array",
             showgrid=True,
-            tickangle=0,
             tickmode="auto",
             nticks=len(df_floor[date_col].unique())  # keep natural spacing
         )
