@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import subprocess, shlex, tempfile, os
 import os, shutil, subprocess
+import requests
+import json
+
 
 # Manually set Ollama path if not detected automatically
 os.environ["PATH"] += os.pathsep + r"C:\Users\PRANAV VIKRAMAN\AppData\Local\Programs\Ollama"
@@ -48,12 +51,24 @@ ask_button = st.button("Ask")
 # --- Ollama Query Function ---
 
 def query_ollama(prompt, model="llama3"):
+    """Send prompt to local Ollama via its HTTP API (no path or encoding issues)."""
+    url = "http://localhost:11434/api/generate"
+    data = {"model": model, "prompt": prompt}
+
     try:
-        cmd = f"ollama run {model} \"{prompt}\""
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=90, shell=True)
-        return result.stdout.strip() if result.returncode == 0 else result.stderr
+        response = requests.post(url, json=data, stream=True)
+        output = ""
+        for line in response.iter_lines():
+            if line:
+                try:
+                    res = json.loads(line.decode("utf-8"))
+                    if "response" in res:
+                        output += res["response"]
+                except Exception:
+                    continue
+        return output.strip() if output else "⚠️ No response from Ollama."
     except Exception as e:
-        return f"❌ Error: {e}"
+        return f"❌ Could not connect to Ollama. Make sure it's running. Error: {e}"
 
 
 # --- Process Question ---
