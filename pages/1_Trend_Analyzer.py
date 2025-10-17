@@ -261,7 +261,6 @@ for kpi_norm in selected_kpis:
         xaxis=dict(
             tickformat="%b %d, %Y",
             tickangle=-60,
-            tickmode="array",
             showgrid=True,
             tickmode="auto",
             nticks=len(df_floor[date_col].unique())  # keep natural spacing
