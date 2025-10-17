@@ -48,24 +48,12 @@ ask_button = st.button("Ask")
 # --- Ollama Query Function ---
 
 def query_ollama(prompt, model="llama3"):
-    """Works for local Windows environment — calls Ollama via full path or PATH."""
     try:
-        OLLAMA_PATH = shutil.which("ollama")
-        if OLLAMA_PATH is None:
-            # Use full Windows path manually here
-            OLLAMA_PATH = r"C:\Users\PRANAV VIKRAMAN\AppData\Local\Programs\Ollama\ollama.exe"
-
-        # Use shell=True for Windows compatibility
-        cmd = f'"{OLLAMA_PATH}" run {model} "{prompt}"'
+        cmd = f"ollama run {model} \"{prompt}\""
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=90, shell=True)
-
-        if result.returncode == 0:
-            return result.stdout.strip()
-        else:
-            return f"⚠️ Ollama returned an error:\n{result.stderr}"
-
+        return result.stdout.strip() if result.returncode == 0 else result.stderr
     except Exception as e:
-        return f"❌ Error running Ollama: {e}"
+        return f"❌ Error: {e}"
 
 
 # --- Process Question ---
