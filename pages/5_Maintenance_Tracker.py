@@ -100,13 +100,25 @@ if "ave" in df_filtered.columns:
     df_filtered = pd.merge(df_filtered, var_df, on=["eq", "ckpi"], how="left")
     df_filtered["Priority Flag"] = np.where(df_filtered["variability_index"] > 30, "⚠️ High Variability", "")
 
-# --- Editable Table ---
+# --- Checkbox Columns ---
 if "✅ checked" not in df_filtered.columns:
     df_filtered["✅ checked"] = False
 if "❌ wrong / review" not in df_filtered.columns:
     df_filtered["❌ wrong / review"] = False
 
+# --- Control Buttons ---
 st.markdown("### 🧾 Maintenance Task Table")
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("☑️ Select All"):
+        df_filtered["✅ checked"] = True
+        df_filtered["❌ wrong / review"] = False
+with col2:
+    if st.button("🚫 Deselect All"):
+        df_filtered["✅ checked"] = False
+        df_filtered["❌ wrong / review"] = False
+
+# --- Editable Table ---
 edited_df = st.data_editor(df_filtered, use_container_width=True, num_rows="dynamic", key="maint_table")
 
 # --- Enforce Single Selection Logic ---
@@ -123,7 +135,6 @@ def highlight_action(row):
     return [""] * len(row)
 
 styled_df = edited_df.style.apply(highlight_action, axis=1)
-
 st.dataframe(styled_df, use_container_width=True)
 
 # --- Generate Word Report ---
@@ -131,9 +142,9 @@ if st.button("✅ Submit and Generate Word Report"):
     doc = Document()
     doc.add_heading('Maintenance Review Report', level=1)
     doc.add_paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    
-    checked = edited_df[edited_df['✅ checked']]
-    wrong = edited_df[edited_df['❌ wrong / review']]
+
+    checked = edited_df[edited_df['✅ checked'].fillna(False)]
+    wrong = edited_df[edited_df['❌ wrong / review'].fillna(False)]
 
     doc.add_heading('✅ Completed Tasks', level=2)
     if not checked.empty:
