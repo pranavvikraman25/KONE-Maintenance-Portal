@@ -121,7 +121,34 @@ for i in range(len(edited_df)):
             edited_df.at[i, "❌ wrong / review"] = False
 
 # Update session
-st.session_state.prev_data = edited_df.copy()
+# --- Upload Section (Persistent) ---
+if "uploaded_file" not in st.session_state:
+    st.session_state.uploaded_file = None
+    st.session_state.df_cache = None
+
+uploaded = st.file_uploader("📂 Upload Actionable Report", type=["xlsx", "csv"], key="file_input")
+
+if uploaded is not None:
+    # Only reload if new file uploaded
+    if st.session_state.uploaded_file != uploaded:
+        st.session_state.uploaded_file = uploaded
+        try:
+            if uploaded.name.endswith(".csv"):
+                df = pd.read_csv(uploaded)
+            else:
+                df = pd.read_excel(uploaded)
+            st.session_state.df_cache = df  # cache the dataframe
+            st.success("✅ File loaded and saved in session.")
+        except Exception as e:
+            st.error(f"Error reading file: {e}")
+else:
+    if st.session_state.df_cache is not None:
+        st.info("📂 Reusing previously uploaded file.")
+        df = st.session_state.df_cache
+    else:
+        st.warning("Upload a file to begin tracking.")
+        st.stop()
+
 
 # Apply colors
 def highlight_action(row):
