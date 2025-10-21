@@ -193,11 +193,19 @@ if st.button("✅ Submit and Generate Word Report"):
                 val = row.get(h, "")
                 row_cells[i].text = str(val)
 
-                # color background
-                shading = row_cells[i]._tc.get_or_add_tcPr().add_new_shd()
-                shading.val = "clear"
-                shading.color = "auto"
-                shading.fill = "C6EFCE" if row["Status"].startswith("✅") else "FFC7CE"
+            # color background (safe XML method)
+                from docx.oxml import parse_xml
+                from docx.oxml.ns import nsdecls
+                
+                if row["Status"].startswith("✅"):
+                    shade_color = "C6EFCE"  # light green
+                else:
+                    shade_color = "FFC7CE"  # light red
+                
+                row_cells[i]._tc.get_or_add_tcPr().append(
+                    parse_xml(r'<w:shd {} w:fill="{}"/>'.format(nsdecls('w'), shade_color))
+                )
+
 
         # export file
         buffer = BytesIO()
