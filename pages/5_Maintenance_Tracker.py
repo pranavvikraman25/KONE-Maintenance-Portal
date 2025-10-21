@@ -148,37 +148,75 @@ def highlight_action(row):
 styled_df = edited_df.style.apply(highlight_action, axis=1)
 st.dataframe(styled_df, use_container_width=True)
 
-# --- Generate Word Report ---
+# --- Save current edited table before export ---
+st.session_state["last_df_state"] = edited_df.copy()
+
+# --- Word Report Export (with Table & Colors) ---
 if st.button("✅ Submit and Generate Word Report"):
     final_df = st.session_state.get("last_df_state", edited_df)
+
+    # keep select all state even after rerun
+    if "✅ checked" in final_df.columns and "❌ wrong / review" in final_df.columns:
+        final_df["✅ checked"] = final_df["✅ checked"].fillna(False)
+        final_df["❌ wrong / review"] = final_df["❌ wrong / review"].fillna(False)
+
+    # start document
     doc = Document()
-    doc.add_heading('Maintenance Review Report', level=1)
+    doc.add_heading("Maintenance Review Report", level=1)
     doc.add_paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    doc.add_paragraph("")
 
-    checked = final_df[final_df['✅ checked'].fillna(False)]
-    wrong = final_df[final_df['❌ wrong / review'].fillna(False)]
+    # filter tasks
+    checked_df = final_df[final_df["✅ checked"]]
+    wrong_df = final_df[final_df["❌ wrong / review"]]
 
-    doc.add_heading('✅ Completed Tasks', level=2)
-    if not checked.empty:
-        for _, row in checked.iterrows():
-            doc.add_paragraph(f"EQ {row['eq']} | {row['ckpi']} | {row['ckpi_statistics_date'].strftime('%Y-%m-%d')} | Floor {row['floor']} — Task Checked")
+    # merge them into one dataframe with a status column
+    checked_df = checked_df.copy()
+    wrong_df = wrong_df.copy()
+    checked_df["Status"] = "✅ Completed"
+    wrong_df["Status"] = "❌ Review Needed"
+    merged = pd.concat([checked_df, wrong_df], ignore_index=True)
+
+    if merged.empty:
+        doc.add_paragraph("No maintenance actions found.")
     else:
-        doc.add_paragraph("No completed tasks.")
+        # create table in docx
+        headers = ["eq", "ckpi", "ckpi_statistics_date", "floor", "ave", "variability_index", "Priority Flag", "Status"]
+        table = doc.add_table(rows=1, cols=len(headers))
+        table.style = "Table Grid"
+        hdr_cells = table.rows[0].cells
+        for i, h in enumerate(headers):
+            hdr_cells[i].text = h
 
-    doc.add_heading('❌ Tasks Needing Review', level=2)
-    if not wrong.empty:
-        for _, row in wrong.iterrows():
-            doc.add_paragraph(f"EQ {row['eq']} | {row['ckpi']} | {row['ckpi_statistics_date'].strftime('%Y-%m-%d')} | Floor {row['floor']} — Requires attention")
-    else:
-        doc.add_paragraph("No pending review tasks.")
+        # add rows with color formatting
+        for _, row in merged.iterrows():
+            row_cells = table.add_row().cells
+            for i, h in enumerate(headers):
+                val = row.get(h, "")
+                row_cells[i].text = str(val)
 
+                # color background
+                if row["Status"].startswith("✅"):
+                    shading_elm = row_cells[i]._tc.get_or_add_tcPr().add_new_shd()
+                    shading_elm.val = "clear"
+                    shading_elm.color = "auto"
+                    shading_elm.fill = "C6EFCE"  # light green
+                elif row["Status"].startswith("❌"):
+                    shading_elm = row_cells[i]._tc.get_or_add_tcPr().add_new_shd()
+                    shading_elm.val = "clear"
+                    shading_elm.color = "auto"
+                    shading_elm.fill = "FFC7CE"  # light red
+
+    # export buffer
     buffer = BytesIO()
     doc.save(buffer)
     buffer.seek(0)
+
     st.download_button(
         label="💾 Download Maintenance Report (Word)",
         data=buffer,
         file_name=f"Maintenance_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
+
 
