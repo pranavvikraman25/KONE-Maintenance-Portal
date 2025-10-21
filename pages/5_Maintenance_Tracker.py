@@ -119,12 +119,23 @@ with col2:
         df_filtered["❌ wrong / review"] = False
 
 # --- Editable Table ---
-edited_df = st.data_editor(df_filtered, use_container_width=True, num_rows="dynamic", key="maint_table")
+edited_df = st.data_editor(
+    df_filtered,
+    use_container_width=True,
+    num_rows="dynamic",
+    key="maint_table"
+)
 
-# --- Enforce Single Selection Logic ---
+# --- Enforce Single Selection Logic (Mutual Exclusive ✅ / ❌) ---
 for i in range(len(edited_df)):
-    if edited_df.at[i, "✅ checked"] and edited_df.at[i, "❌ wrong / review"]:
+    checked_val = bool(edited_df.at[i, "✅ checked"])
+    wrong_val = bool(edited_df.at[i, "❌ wrong / review"])
+    if checked_val and wrong_val:
+        # Priority: ✅ Checked overrides ❌ Wrong
         edited_df.at[i, "❌ wrong / review"] = False
+
+# --- Save persistent state before any re-run ---
+st.session_state["last_df_state"] = edited_df
 
 # --- Highlight instantly ---
 def highlight_action(row):
@@ -139,12 +150,13 @@ st.dataframe(styled_df, use_container_width=True)
 
 # --- Generate Word Report ---
 if st.button("✅ Submit and Generate Word Report"):
+    final_df = st.session_state.get("last_df_state", edited_df)
     doc = Document()
     doc.add_heading('Maintenance Review Report', level=1)
     doc.add_paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-    checked = edited_df[edited_df['✅ checked'].fillna(False)]
-    wrong = edited_df[edited_df['❌ wrong / review'].fillna(False)]
+    checked = final_df[final_df['✅ checked'].fillna(False)]
+    wrong = final_df[final_df['❌ wrong / review'].fillna(False)]
 
     doc.add_heading('✅ Completed Tasks', level=2)
     if not checked.empty:
@@ -169,3 +181,4 @@ if st.button("✅ Submit and Generate Word Report"):
         file_name=f"Maintenance_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
+
