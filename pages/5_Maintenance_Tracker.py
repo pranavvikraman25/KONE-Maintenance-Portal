@@ -14,7 +14,7 @@ Each row represents a CKPI reading — mark:
 - ❌ **Wrong / Review** if the task needs attention  
 
 Only one can be selected per row.  
-This app remembers your last uploaded data even after refresh — and lets you choose whether to reuse or replace it.
+This version filters only the **6 key CKPIs** and adds **precise date limits** based on your data.
 """)
 
 # -------------------------------------------------------------------------
@@ -40,15 +40,14 @@ st.sidebar.markdown("---")
 if st.sidebar.button("🔄 Reset Session"):
     for key in list(st.session_state.keys()):
         del st.session_state[key]
-    st.success("✅ Session has been cleared. Ready for a new upload.")
+    st.success("✅ Session cleared. Ready for a new file.")
     st.experimental_rerun()
 
 # -------------------------------------------------------------------------
-# 📂 Upload or Reuse Previous File
+# 📂 Upload / Reuse Logic
 # -------------------------------------------------------------------------
 uploaded = st.file_uploader("📂 Upload Actionable Report", type=["xlsx", "csv"], key="file_input")
 
-# If no file is uploaded but old data exists, ask user what to do
 if uploaded is None and st.session_state.df_cache is not None:
     choice = st.radio(
         "A previous file was found. What would you like to do?",
@@ -63,7 +62,6 @@ if uploaded is None and st.session_state.df_cache is not None:
         st.session_state.uploaded_file = None
         st.warning("Please upload a new file above to continue.")
         st.stop()
-
 elif uploaded is not None:
     try:
         if uploaded.name.endswith(".csv"):
@@ -72,48 +70,75 @@ elif uploaded is not None:
             df = pd.read_excel(uploaded)
         st.session_state.df_cache = df
         st.session_state.uploaded_file = uploaded
-        st.success("✅ File successfully loaded and cached for future use.")
+        st.success("✅ File successfully loaded and cached.")
     except Exception as e:
         st.error(f"Error reading file: {e}")
         st.stop()
-
 else:
     st.warning("📤 Please upload a file to begin tracking.")
     st.stop()
 
 # -------------------------------------------------------------------------
-# 🧭 Sidebar Filters
+# 🎯 Define 6 Key CKPIs
+# -------------------------------------------------------------------------
+KEY_CKPIS = [
+    "doorfriction",
+    "cumulativedoorspeederror",
+    "lockhookclosingtime",
+    "lockhooktime",
+    "maximumforceduringcompress",
+    "landingdoorlockrollerclearance"
+]
+
+# -------------------------------------------------------------------------
+# 🧭 Sidebar Filters (Restricted to 6 CKPIs)
 # -------------------------------------------------------------------------
 st.sidebar.header("🔍 Filters")
 
-# Ensure column names exist
+# Ensure required columns
 expected_cols = ["eq", "ckpi", "ckpi_statistics_date"]
 missing_cols = [col for col in expected_cols if col not in df.columns]
 if missing_cols:
     st.error(f"Missing required columns: {missing_cols}")
     st.stop()
 
-# Equipment Filter
+# Clean CKPI names to lowercase for matching
+df["ckpi"] = df["ckpi"].astype(str).str.lower()
+
+# Equipment filter
 eqs = sorted(df["eq"].dropna().unique())
 if not st.session_state.sel_eqs:
     st.session_state.sel_eqs = eqs
 sel_eqs = st.sidebar.multiselect("Select Equipment(s)", eqs, default=st.session_state.sel_eqs)
 st.session_state.sel_eqs = sel_eqs
 
-# CKPI Filter
-ckpis = sorted(df["ckpi"].dropna().unique())
+# KPI filter (only 6)
+available_ckpis = [c for c in KEY_CKPIS if c in df["ckpi"].unique()]
+if not available_ckpis:
+    st.error("❌ None of the 6 main CKPIs found in your data.")
+    st.stop()
+
 if not st.session_state.sel_ckpis:
-    st.session_state.sel_ckpis = ckpis
-sel_ckpis = st.sidebar.multiselect("Select KPI(s)", ckpis, default=st.session_state.sel_ckpis)
+    st.session_state.sel_ckpis = available_ckpis
+sel_ckpis = st.sidebar.multiselect("Select KPI(s)", available_ckpis, default=st.session_state.sel_ckpis)
 st.session_state.sel_ckpis = sel_ckpis
 
-# Date Range Filter
+# Date range
 df["ckpi_statistics_date"] = pd.to_datetime(df["ckpi_statistics_date"], errors="coerce")
 df = df.dropna(subset=["ckpi_statistics_date"])
+
+# Auto-limit the calendar range
 min_d, max_d = df["ckpi_statistics_date"].min().date(), df["ckpi_statistics_date"].max().date()
 if st.session_state.sel_date_range is None:
     st.session_state.sel_date_range = [min_d, max_d]
-sel_range = st.sidebar.date_input("Select Date Range", st.session_state.sel_date_range)
+
+st.sidebar.markdown("### 📅 Date Range (Available Only Within Data)")
+sel_range = st.sidebar.date_input(
+    "Select Date Range",
+    value=st.session_state.sel_date_range,
+    min_value=min_d,
+    max_value=max_d
+)
 st.session_state.sel_date_range = sel_range
 start_d, end_d = sel_range
 
@@ -128,11 +153,11 @@ df_filt = df[
 ]
 
 if df_filt.empty:
-    st.warning("No records found for the selected filters.")
+    st.warning("No data available for selected filters.")
     st.stop()
 
 # -------------------------------------------------------------------------
-# 📊 Variability and Priority Flag
+# 📈 Variability and Flags
 # -------------------------------------------------------------------------
 def calc_var(values):
     v = pd.to_numeric(values, errors="coerce").dropna()
@@ -151,10 +176,10 @@ if "ave" in df_filt.columns:
     df_filt = pd.merge(df_filt, var_df, on=["eq", "ckpi"], how="left")
     df_filt["Priority Flag"] = np.where(df_filt["variability_index"] > 30, "⚠️ High Variability", "")
 else:
-    st.warning("No 'ave' column found for variability calculation.")
+    st.warning("No 'ave' column found for variability analysis.")
 
 # -------------------------------------------------------------------------
-# 🧾 Editable Table (✅ / ❌) + State Persistence
+# 🧾 Editable Table (✅ / ❌)
 # -------------------------------------------------------------------------
 if st.session_state.last_edited_df is not None:
     df_filt = st.session_state.last_edited_df.copy()
@@ -173,27 +198,27 @@ edited_df = st.data_editor(
     key="maint_table"
 )
 
-# Mutual exclusivity between ✅ and ❌
+# Ensure mutual exclusivity
 for i in range(len(edited_df)):
     if edited_df.at[i, "✅ checked"] and edited_df.at[i, "❌ wrong / review"]:
         edited_df.at[i, "❌ wrong / review"] = False
 
 st.session_state.last_edited_df = edited_df.copy()
 
+# Highlight rows
 def highlight_action(row):
     if row["✅ checked"]:
-        return ["background-color: #b5e7a0"] * len(row)  # green
+        return ["background-color: #b5e7a0"] * len(row)
     elif row["❌ wrong / review"]:
-        return ["background-color: #f4a6a6"] * len(row)  # red
+        return ["background-color: #f4a6a6"] * len(row)
     return [""] * len(row)
 
 styled_df = edited_df.style.apply(highlight_action, axis=1)
-
 st.markdown("### 📋 Reviewed Maintenance Records")
 st.dataframe(styled_df, use_container_width=True)
 
 # -------------------------------------------------------------------------
-# 📤 Submit and Download
+# 📤 Submit & Download
 # -------------------------------------------------------------------------
 st.markdown("---")
 st.subheader("📤 Submit Maintenance Review")
