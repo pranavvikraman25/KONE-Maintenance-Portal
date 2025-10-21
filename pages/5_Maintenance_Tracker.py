@@ -8,10 +8,12 @@ st.set_page_config(page_title="Maintenance Tracker", layout="wide")
 st.title("🧰 Maintenance Tracker — Technician Action Center")
 
 st.markdown("""
-Upload the **Actionable Report (Excel/CSV)** generated from your Trend Analysis.  
-You can filter by Equipment, KPI, and Date, then mark each record as:
-- ✅ **Checked** → Verified and resolved  
-- ❌ **Wrong / Review** → Needs further inspection  
+Upload your **Actionable Report (Excel/CSV)** from Trend Analysis to mark maintenance actions.  
+Each row represents a CKPI reading — mark:
+- ✅ **Checked** if the task is complete or verified  
+- ❌ **Wrong / Review** if the task needs attention  
+
+Only one can be selected per row.
 """)
 
 # -------------------- Upload --------------------
@@ -34,115 +36,124 @@ if df.empty:
     st.warning("Uploaded file is empty.")
     st.stop()
 
-# --- Normalize column names ---
 df.columns = [c.strip().lower() for c in df.columns]
 
-# --- Expected core columns ---
-expected_cols = ["eq", "ckpi", "ckpi_statistics_date", "floor"]
-for col in expected_cols:
+required_cols = ["eq", "ckpi", "ckpi_statistics_date", "floor"]
+for col in required_cols:
     if col not in df.columns:
-        st.error(f"Required column '{col}' not found in uploaded file.")
+        st.error(f"Missing column '{col}'. Expected columns: {required_cols}")
         st.stop()
 
 # -------------------- Sidebar Filters --------------------
 st.sidebar.header("🔍 Filters")
 
-# Equipment Filter
-eq_list = sorted(df["eq"].dropna().unique())
-selected_eq = st.sidebar.multiselect("Select Equipment(s)", eq_list, default=eq_list)
+eqs = sorted(df["eq"].dropna().unique())
+sel_eqs = st.sidebar.multiselect("Select Equipment(s)", eqs, default=eqs)
 
-# KPI Filter
-ckpi_list = sorted(df["ckpi"].dropna().unique())
-selected_ckpis = st.sidebar.multiselect("Select KPI(s)", ckpi_list, default=ckpi_list)
+ckpis = sorted(df["ckpi"].dropna().unique())
+sel_ckpis = st.sidebar.multiselect("Select KPI(s)", ckpis, default=ckpis)
 
-# Date Filter
 df["ckpi_statistics_date"] = pd.to_datetime(df["ckpi_statistics_date"], errors="coerce")
 df = df.dropna(subset=["ckpi_statistics_date"])
+min_d, max_d = df["ckpi_statistics_date"].min().date(), df["ckpi_statistics_date"].max().date()
+sel_range = st.sidebar.date_input("Select Date Range", [min_d, max_d])
+start_d, end_d = sel_range
 
-min_date = df["ckpi_statistics_date"].min().date()
-max_date = df["ckpi_statistics_date"].max().date()
-date_range = st.sidebar.date_input("Select Date Range", [min_date, max_date])
-start_date, end_date = date_range
-
-# Apply Filters
-filtered_df = df[
-    (df["eq"].isin(selected_eq)) &
-    (df["ckpi"].isin(selected_ckpis)) &
-    (df["ckpi_statistics_date"].dt.date >= start_date) &
-    (df["ckpi_statistics_date"].dt.date <= end_date)
+df_filt = df[
+    (df["eq"].isin(sel_eqs))
+    & (df["ckpi"].isin(sel_ckpis))
+    & (df["ckpi_statistics_date"].dt.date >= start_d)
+    & (df["ckpi_statistics_date"].dt.date <= end_d)
 ]
 
-if filtered_df.empty:
-    st.warning("No data available for the selected filters.")
+if df_filt.empty:
+    st.warning("No records for selected filters.")
     st.stop()
 
-# -------------------- Variability Detection --------------------
-# Identify CKPIs with high up/down fluctuations (uncertainty)
-def calc_variability(values):
-    values = pd.to_numeric(values, errors="coerce").dropna()
-    if len(values) < 4:
-        return 0
-    diffs = np.diff(values)
-    sign_changes = np.sum(np.diff(np.sign(diffs)) != 0)
-    return round((sign_changes / len(values)) * 100, 1)
+# -------------------- Variability --------------------
+def calc_var(values):
+    v = pd.to_numeric(values, errors="coerce").dropna()
+    if len(v) < 4: return 0
+    diffs = np.diff(v)
+    return np.sum(np.diff(np.sign(diffs)) != 0) / len(v) * 100
 
-variability = (
-    filtered_df.groupby(["eq", "ckpi"])["ave"]
-    .apply(calc_variability)
+var_df = (
+    df_filt.groupby(["eq", "ckpi"])["ave"]
+    .apply(calc_var)
     .reset_index()
     .rename(columns={"ave": "variability_index"})
 )
+df_filt = pd.merge(df_filt, var_df, on=["eq", "ckpi"], how="left")
+df_filt["Priority Flag"] = np.where(df_filt["variability_index"] > 30, "⚠️ High Variability", "")
 
-filtered_df = pd.merge(filtered_df, variability, on=["eq", "ckpi"], how="left")
-filtered_df["Priority Flag"] = np.where(filtered_df["variability_index"] > 30, "⚠️ High Variability", "")
+# -------------------- Mutually Exclusive Actions --------------------
+if "✅ checked" not in df_filt.columns:
+    df_filt["✅ checked"] = False
+if "❌ wrong / review" not in df_filt.columns:
+    df_filt["❌ wrong / review"] = False
 
-# -------------------- Technician Action Table --------------------
+# Track previous state to apply mutual exclusivity
+if "prev_data" not in st.session_state:
+    st.session_state.prev_data = df_filt.copy()
+
 st.markdown("### 🧾 Maintenance Task Review")
-
-# Add action columns if not present
-if "✅ checked" not in filtered_df.columns:
-    filtered_df["✅ checked"] = False
-if "❌ wrong / review" not in filtered_df.columns:
-    filtered_df["❌ wrong / review"] = False
-
-# Sort: show high variability first
-filtered_df = filtered_df.sort_values(by="variability_index", ascending=False)
 
 # Editable table
 edited_df = st.data_editor(
-    filtered_df,
+    df_filt,
     use_container_width=True,
     num_rows="dynamic",
     key="maint_table"
 )
 
-st.markdown("### 📋 Reviewed Maintenance Records")
-st.dataframe(edited_df)
+# --- Enforce mutual exclusivity (post-edit) ---
+for i in range(len(edited_df)):
+    if edited_df.at[i, "✅ checked"] and edited_df.at[i, "❌ wrong / review"]:
+        # If both selected, unselect the opposite one based on latest change
+        prev_check = st.session_state.prev_data.at[i, "✅ checked"]
+        prev_wrong = st.session_state.prev_data.at[i, "❌ wrong / review"]
 
-# -------------------- Submit Section --------------------
+        if prev_check != edited_df.at[i, "✅ checked"]:
+            edited_df.at[i, "❌ wrong / review"] = False
+        elif prev_wrong != edited_df.at[i, "❌ wrong / review"]:
+            edited_df.at[i, "✅ checked"] = False
+        else:
+            edited_df.at[i, "❌ wrong / review"] = False
+
+# Update session
+st.session_state.prev_data = edited_df.copy()
+
+# Apply colors
+def highlight_action(row):
+    if row["✅ checked"]:
+        return ["background-color: #b5e7a0"] * len(row)  # green
+    elif row["❌ wrong / review"]:
+        return ["background-color: #f4a6a6"] * len(row)  # red
+    return [""] * len(row)
+
+styled_df = edited_df.style.apply(highlight_action, axis=1)
+
+st.markdown("### 📋 Reviewed Maintenance Records")
+st.dataframe(styled_df, use_container_width=True)
+
+# -------------------- Submit --------------------
 st.markdown("---")
-st.subheader("📤 Submit Your Review")
+st.subheader("📤 Submit Maintenance Review")
 
 if st.button("✅ Submit and Lock Progress"):
-    st.success("✅ Submission recorded! Download your progress file below.")
+    st.success("✅ Submission recorded! Download your progress below.")
 
-    # Save reviewed data to Excel
-    def df_to_excel_bytes(df_):
+    def to_excel(df_):
         out = BytesIO()
         with pd.ExcelWriter(out, engine="openpyxl") as writer:
             df_.to_excel(writer, index=False, sheet_name="Maintenance_Review")
         out.seek(0)
         return out
 
-    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"Maintenance_Progress_{current_time}.xlsx"
-
-    st.download_button(
-        "💾 Download Maintenance Progress",
-        data=df_to_excel_bytes(edited_df),
-        file_name=filename
-    )
-
-    st.info("Editing disabled after submission for audit integrity.")
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    fname = f"Maintenance_Review_{ts}.xlsx"
+    st.download_button("💾 Download Maintenance Review File",
+                       data=to_excel(edited_df),
+                       file_name=fname)
 else:
-    st.warning("Make sure you review and mark before submitting.")
+    st.info("Mark all tasks and then click Submit when done.")
