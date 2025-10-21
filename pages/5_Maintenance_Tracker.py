@@ -14,89 +14,125 @@ Each row represents a CKPI reading — mark:
 - ❌ **Wrong / Review** if the task needs attention  
 
 Only one can be selected per row.  
-This page now **remembers your data** even if you switch modules or come back later.
+This app remembers your last uploaded data even after refresh — and lets you choose whether to reuse or replace it.
 """)
 
 # -------------------------------------------------------------------------
-# 📂 Step 1 — Persistent Upload
+# 🧠 Session Initialization
 # -------------------------------------------------------------------------
 if "uploaded_file" not in st.session_state:
     st.session_state.uploaded_file = None
+if "df_cache" not in st.session_state:
     st.session_state.df_cache = None
-
-uploaded = st.file_uploader("📂 Upload Actionable Report", type=["xlsx", "csv"], key="file_input")
-
-if uploaded is not None:
-    # Only reload if new file uploaded
-    if st.session_state.uploaded_file != uploaded:
-        st.session_state.uploaded_file = uploaded
-        try:
-            if uploaded.name.endswith(".csv"):
-                df = pd.read_csv(uploaded)
-            else:
-                df = pd.read_excel(uploaded)
-            st.session_state.df_cache = df
-            st.success("✅ File loaded and saved in session.")
-        except Exception as e:
-            st.error(f"Error reading file: {e}")
-else:
-    if st.session_state.df_cache is not None:
-        st.info("📂 Reusing previously uploaded file.")
-        df = st.session_state.df_cache
-    else:
-        st.warning("Upload a file to begin tracking.")
-        st.stop()
+if "sel_eqs" not in st.session_state:
+    st.session_state.sel_eqs = []
+if "sel_ckpis" not in st.session_state:
+    st.session_state.sel_ckpis = []
+if "sel_date_range" not in st.session_state:
+    st.session_state.sel_date_range = None
+if "last_edited_df" not in st.session_state:
+    st.session_state.last_edited_df = None
 
 # -------------------------------------------------------------------------
-# 🧭 Step 2 — Persistent Filters
+# 🧹 Reset Mechanism
+# -------------------------------------------------------------------------
+st.sidebar.markdown("---")
+if st.sidebar.button("🔄 Reset Session"):
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.success("✅ Session has been cleared. Ready for a new upload.")
+    st.experimental_rerun()
+
+# -------------------------------------------------------------------------
+# 📂 Upload or Reuse Previous File
+# -------------------------------------------------------------------------
+uploaded = st.file_uploader("📂 Upload Actionable Report", type=["xlsx", "csv"], key="file_input")
+
+# If no file is uploaded but old data exists, ask user what to do
+if uploaded is None and st.session_state.df_cache is not None:
+    choice = st.radio(
+        "A previous file was found. What would you like to do?",
+        ["📁 Reuse old file", "🆕 Upload a new one"],
+        index=0
+    )
+    if choice == "📁 Reuse old file":
+        df = st.session_state.df_cache
+        st.info("Using previously uploaded file.")
+    else:
+        st.session_state.df_cache = None
+        st.session_state.uploaded_file = None
+        st.warning("Please upload a new file above to continue.")
+        st.stop()
+
+elif uploaded is not None:
+    try:
+        if uploaded.name.endswith(".csv"):
+            df = pd.read_csv(uploaded)
+        else:
+            df = pd.read_excel(uploaded)
+        st.session_state.df_cache = df
+        st.session_state.uploaded_file = uploaded
+        st.success("✅ File successfully loaded and cached for future use.")
+    except Exception as e:
+        st.error(f"Error reading file: {e}")
+        st.stop()
+
+else:
+    st.warning("📤 Please upload a file to begin tracking.")
+    st.stop()
+
+# -------------------------------------------------------------------------
+# 🧭 Sidebar Filters
 # -------------------------------------------------------------------------
 st.sidebar.header("🔍 Filters")
 
+# Ensure column names exist
+expected_cols = ["eq", "ckpi", "ckpi_statistics_date"]
+missing_cols = [col for col in expected_cols if col not in df.columns]
+if missing_cols:
+    st.error(f"Missing required columns: {missing_cols}")
+    st.stop()
+
+# Equipment Filter
 eqs = sorted(df["eq"].dropna().unique())
-if "sel_eqs" not in st.session_state:
+if not st.session_state.sel_eqs:
     st.session_state.sel_eqs = eqs
 sel_eqs = st.sidebar.multiselect("Select Equipment(s)", eqs, default=st.session_state.sel_eqs)
 st.session_state.sel_eqs = sel_eqs
 
+# CKPI Filter
 ckpis = sorted(df["ckpi"].dropna().unique())
-if "sel_ckpis" not in st.session_state:
+if not st.session_state.sel_ckpis:
     st.session_state.sel_ckpis = ckpis
 sel_ckpis = st.sidebar.multiselect("Select KPI(s)", ckpis, default=st.session_state.sel_ckpis)
 st.session_state.sel_ckpis = sel_ckpis
 
+# Date Range Filter
 df["ckpi_statistics_date"] = pd.to_datetime(df["ckpi_statistics_date"], errors="coerce")
 df = df.dropna(subset=["ckpi_statistics_date"])
-
 min_d, max_d = df["ckpi_statistics_date"].min().date(), df["ckpi_statistics_date"].max().date()
-if "sel_date_range" not in st.session_state:
+if st.session_state.sel_date_range is None:
     st.session_state.sel_date_range = [min_d, max_d]
 sel_range = st.sidebar.date_input("Select Date Range", st.session_state.sel_date_range)
 st.session_state.sel_date_range = sel_range
 start_d, end_d = sel_range
 
-# Reset button
-st.sidebar.markdown("---")
-if st.sidebar.button("🔄 Reset Session"):
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    st.experimental_rerun()
-
 # -------------------------------------------------------------------------
-# 🔎 Step 3 — Apply Filters
+# 🔍 Apply Filters
 # -------------------------------------------------------------------------
 df_filt = df[
-    (df["eq"].isin(sel_eqs)) &
-    (df["ckpi"].isin(sel_ckpis)) &
-    (df["ckpi_statistics_date"].dt.date >= start_d) &
-    (df["ckpi_statistics_date"].dt.date <= end_d)
+    (df["eq"].isin(sel_eqs))
+    & (df["ckpi"].isin(sel_ckpis))
+    & (df["ckpi_statistics_date"].dt.date >= start_d)
+    & (df["ckpi_statistics_date"].dt.date <= end_d)
 ]
 
 if df_filt.empty:
-    st.warning("No records for selected filters.")
+    st.warning("No records found for the selected filters.")
     st.stop()
 
 # -------------------------------------------------------------------------
-# 📈 Step 4 — Variability Index & Priority Flags
+# 📊 Variability and Priority Flag
 # -------------------------------------------------------------------------
 def calc_var(values):
     v = pd.to_numeric(values, errors="coerce").dropna()
@@ -105,19 +141,22 @@ def calc_var(values):
     diffs = np.diff(v)
     return np.sum(np.diff(np.sign(diffs)) != 0) / len(v) * 100
 
-var_df = (
-    df_filt.groupby(["eq", "ckpi"])["ave"]
-    .apply(calc_var)
-    .reset_index()
-    .rename(columns={"ave": "variability_index"})
-)
-df_filt = pd.merge(df_filt, var_df, on=["eq", "ckpi"], how="left")
-df_filt["Priority Flag"] = np.where(df_filt["variability_index"] > 30, "⚠️ High Variability", "")
+if "ave" in df_filt.columns:
+    var_df = (
+        df_filt.groupby(["eq", "ckpi"])["ave"]
+        .apply(calc_var)
+        .reset_index()
+        .rename(columns={"ave": "variability_index"})
+    )
+    df_filt = pd.merge(df_filt, var_df, on=["eq", "ckpi"], how="left")
+    df_filt["Priority Flag"] = np.where(df_filt["variability_index"] > 30, "⚠️ High Variability", "")
+else:
+    st.warning("No 'ave' column found for variability calculation.")
 
 # -------------------------------------------------------------------------
-# 🧾 Step 5 — Editable Table with Persistence & Exclusivity
+# 🧾 Editable Table (✅ / ❌) + State Persistence
 # -------------------------------------------------------------------------
-if "last_edited_df" in st.session_state and st.session_state.last_edited_df is not None:
+if st.session_state.last_edited_df is not None:
     df_filt = st.session_state.last_edited_df.copy()
 
 if "✅ checked" not in df_filt.columns:
@@ -137,19 +176,10 @@ edited_df = st.data_editor(
 # Mutual exclusivity between ✅ and ❌
 for i in range(len(edited_df)):
     if edited_df.at[i, "✅ checked"] and edited_df.at[i, "❌ wrong / review"]:
-        # Keep only the latest clicked
-        prev = st.session_state.last_edited_df if "last_edited_df" in st.session_state else df_filt
-        prev_check = prev.at[i, "✅ checked"] if "✅ checked" in prev.columns else False
-        prev_wrong = prev.at[i, "❌ wrong / review"] if "❌ wrong / review" in prev.columns else False
-        if prev_check != edited_df.at[i, "✅ checked"]:
-            edited_df.at[i, "❌ wrong / review"] = False
-        else:
-            edited_df.at[i, "✅ checked"] = False
+        edited_df.at[i, "❌ wrong / review"] = False
 
-# Save progress
 st.session_state.last_edited_df = edited_df.copy()
 
-# Color rows
 def highlight_action(row):
     if row["✅ checked"]:
         return ["background-color: #b5e7a0"] * len(row)  # green
@@ -163,13 +193,13 @@ st.markdown("### 📋 Reviewed Maintenance Records")
 st.dataframe(styled_df, use_container_width=True)
 
 # -------------------------------------------------------------------------
-# 📤 Step 6 — Submit & Download
+# 📤 Submit and Download
 # -------------------------------------------------------------------------
 st.markdown("---")
 st.subheader("📤 Submit Maintenance Review")
 
 if st.button("✅ Submit and Lock Progress"):
-    st.success("✅ Submission recorded! Download your progress below.")
+    st.success("✅ Submission recorded! Download your reviewed file below.")
 
     def to_excel(df_):
         out = BytesIO()
@@ -180,8 +210,10 @@ if st.button("✅ Submit and Lock Progress"):
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     fname = f"Maintenance_Review_{ts}.xlsx"
-    st.download_button("💾 Download Maintenance Review File",
-                       data=to_excel(edited_df),
-                       file_name=fname)
+    st.download_button(
+        "💾 Download Maintenance Review File",
+        data=to_excel(edited_df),
+        file_name=fname
+    )
 else:
     st.info("Mark all tasks and then click Submit when done.")
