@@ -171,7 +171,22 @@ if st.button("✅ Submit and Generate Word Report"):
         st.warning("No maintenance actions marked.")
     else:
         doc = Document()
+
+        # --- Landscape Setup ---
+        from docx.enum.section import WD_ORIENT
+        from docx.shared import Inches
+        section = doc.sections[-1]
+        section.orientation = WD_ORIENT.LANDSCAPE
+        section.page_width = Inches(11.69)
+        section.page_height = Inches(8.27)
+        section.left_margin = Inches(0.5)
+        section.right_margin = Inches(0.5)
+        section.top_margin = Inches(0.5)
+        section.bottom_margin = Inches(0.5)
+        
+        # --- Header ---
         doc.add_heading("Maintenance Review Report", level=1)
+
         doc.add_paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         doc.add_paragraph("")
 
