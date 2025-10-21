@@ -45,11 +45,16 @@ if "maint_table" not in st.session_state:
 # --- Load from session ---
 edited_df = st.session_state["maint_table"].copy()
 
-# --- Filters ---
+#-----------side filter---------------------------------------------
+
 with st.sidebar:
     st.subheader("⚙️ Filters")
 
-    eqs = sorted(edited_df["eq"].dropna().unique())
+    # --- Safe handling: if columns not found yet ---
+    if "eq" in edited_df.columns:
+        eqs = sorted(edited_df["eq"].dropna().unique())
+    else:
+        eqs = []
     selected_eq = st.multiselect("Select Equipment(s)", eqs, default=eqs)
 
     kpis = [
@@ -62,13 +67,20 @@ with st.sidebar:
     ]
     selected_kpi = st.multiselect("Select KPI(s)", kpis, default=kpis)
 
-    min_date, max_date = edited_df["ckpi_statistics_date"].min(), edited_df["ckpi_statistics_date"].max()
-    start_date, end_date = st.date_input(
-        "Select Date Range (Available Only Within Data)",
-        [min_date.date(), max_date.date()],
-        min_value=min_date.date(),
-        max_value=max_date.date()
-    )
+    # --- Date range filter ---
+    if "ckpi_statistics_date" in edited_df.columns and not edited_df["ckpi_statistics_date"].isna().all():
+        min_date = edited_df["ckpi_statistics_date"].min()
+        max_date = edited_df["ckpi_statistics_date"].max()
+        start_date, end_date = st.date_input(
+            "Select Date Range (Available Only Within Data)",
+            [min_date.date(), max_date.date()],
+            min_value=min_date.date(),
+            max_value=max_date.date()
+        )
+    else:
+        start_date = end_date = datetime.today().date()
+        st.info("Upload a valid file to activate date filters.")
+
 
 # --- Apply filters ---
 df_filtered = edited_df[
