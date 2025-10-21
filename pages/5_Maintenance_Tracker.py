@@ -134,9 +134,6 @@ for i in range(len(edited_df)):
         # Priority: ✅ Checked overrides ❌ Wrong
         edited_df.at[i, "❌ wrong / review"] = False
 
-# --- Save persistent state before any re-run ---
-st.session_state["last_df_state"] = edited_df
-
 # --- Highlight instantly ---
 def highlight_action(row):
     if row["✅ checked"]:
