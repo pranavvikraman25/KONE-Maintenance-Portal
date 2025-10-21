@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from io import BytesIO
 from datetime import datetime
+from docx import Document
 
 st.set_page_config(page_title="Maintenance Tracker", layout="wide")
 st.title("🧰 Maintenance Tracker — Technician Action Center")
@@ -13,8 +14,7 @@ Each row represents a CKPI reading — mark:
 - ✅ **Checked** if the task is complete or verified  
 - ❌ **Wrong / Review** if the task needs attention  
 
-Only one can be selected per row.  
-This version filters only the **6 key CKPIs** and applies filters correctly to both result tables.
+Each action instantly changes color (green for ✅, red for ❌) and can be downloaded as a **Word (.docx)** report.
 """)
 
 # --- Session Setup ---
@@ -22,15 +22,6 @@ if "uploaded_file" not in st.session_state:
     st.session_state.uploaded_file = None
 if "df_cache" not in st.session_state:
     st.session_state.df_cache = None
-if "last_edited_df" not in st.session_state:
-    st.session_state.last_edited_df = None
-
-# --- Reset Mechanism ---
-if st.sidebar.button("🔄 Reset Session"):
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    st.success("✅ Session cleared. Upload a new file.")
-    st.experimental_rerun()
 
 # --- Upload Section ---
 uploaded = st.file_uploader("📂 Upload Actionable Report", type=["xlsx", "csv"])
@@ -115,24 +106,15 @@ if "✅ checked" not in df_filtered.columns:
 if "❌ wrong / review" not in df_filtered.columns:
     df_filtered["❌ wrong / review"] = False
 
-if st.session_state.last_edited_df is not None:
-    df_filtered = st.session_state.last_edited_df
-
-st.markdown("### 🧾 Maintenance Task Review")
+st.markdown("### 🧾 Maintenance Task Table")
 edited_df = st.data_editor(df_filtered, use_container_width=True, num_rows="dynamic", key="maint_table")
 
 # --- Enforce Single Selection Logic ---
 for i in range(len(edited_df)):
     if edited_df.at[i, "✅ checked"] and edited_df.at[i, "❌ wrong / review"]:
-        # keep only one active, last one clicked wins
-        if st.session_state.get("last_click") == "✅":
-            edited_df.at[i, "❌ wrong / review"] = False
-        else:
-            edited_df.at[i, "✅ checked"] = False
+        edited_df.at[i, "❌ wrong / review"] = False
 
-st.session_state.last_edited_df = edited_df
-
-# --- Highlighted Table ---
+# --- Highlight instantly ---
 def highlight_action(row):
     if row["✅ checked"]:
         return ["background-color: #b5e7a0"] * len(row)
@@ -142,18 +124,37 @@ def highlight_action(row):
 
 styled_df = edited_df.style.apply(highlight_action, axis=1)
 
-st.markdown("### 📋 Reviewed Maintenance Records")
 st.dataframe(styled_df, use_container_width=True)
 
-# --- Download Updated File ---
-if st.button("✅ Submit and Lock Progress"):
-    st.success("✅ Submission recorded! Download below.")
-    out = BytesIO()
-    with pd.ExcelWriter(out, engine="openpyxl") as writer:
-        edited_df.to_excel(writer, index=False, sheet_name="Maintenance_Review")
-    out.seek(0)
+# --- Generate Word Report ---
+if st.button("✅ Submit and Generate Word Report"):
+    doc = Document()
+    doc.add_heading('Maintenance Review Report', level=1)
+    doc.add_paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    checked = edited_df[edited_df['✅ checked']]
+    wrong = edited_df[edited_df['❌ wrong / review']]
+
+    doc.add_heading('✅ Completed Tasks', level=2)
+    if not checked.empty:
+        for _, row in checked.iterrows():
+            doc.add_paragraph(f"EQ {row['eq']} | {row['ckpi']} | {row['ckpi_statistics_date'].strftime('%Y-%m-%d')} | Floor {row['floor']} — Task Checked")
+    else:
+        doc.add_paragraph("No completed tasks.")
+
+    doc.add_heading('❌ Tasks Needing Review', level=2)
+    if not wrong.empty:
+        for _, row in wrong.iterrows():
+            doc.add_paragraph(f"EQ {row['eq']} | {row['ckpi']} | {row['ckpi_statistics_date'].strftime('%Y-%m-%d')} | Floor {row['floor']} — Requires attention")
+    else:
+        doc.add_paragraph("No pending review tasks.")
+
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
     st.download_button(
-        "💾 Download Reviewed File",
-        data=out,
-        file_name=f"Maintenance_Review_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        label="💾 Download Maintenance Report (Word)",
+        data=buffer,
+        file_name=f"Maintenance_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
