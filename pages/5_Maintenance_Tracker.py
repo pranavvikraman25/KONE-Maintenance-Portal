@@ -16,9 +16,7 @@ st.markdown("""
 Upload your **Actionable Report (Excel/CSV)** from Trend Analysis to mark maintenance actions.  
 Each row represents a CKPI reading — mark:
 - ✅ **Checked** if the task is complete or verified  
-- ❌ **Wrong / Review** if the task needs attention  
-
-Each action instantly changes color (green for ✅, red for ❌) and can be downloaded as a **Word (.docx)** report.
+- ❌ **Wrong / Review** if the task needs attention
 """)
 
 # --- Session State Setup ---
