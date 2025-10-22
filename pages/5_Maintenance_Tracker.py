@@ -135,19 +135,44 @@ with col2:
         st.session_state.maint_df.update(df_filtered)
         st.rerun()
 
-# --- Editable Table ---
-edited_df = st.data_editor(df_filtered, use_container_width=True, num_rows="dynamic", key="maint_table")
+# --- Instant Checkbox Table (Fast + Reliable) ---
+st.markdown("### ⚙️ Maintenance Task Review")
 
-# --- Enforce Mutual Exclusivity ---
-for i in range(len(edited_df)):
-    checked = bool(edited_df.at[i, "✅ checked"])
-    wrong = bool(edited_df.at[i, "❌ wrong / review"])
+new_rows = []
+for i, row in df_filtered.iterrows():
+    eq = row.get("eq", "")
+    ckpi = row.get("ckpi", "")
+    date = row.get("ckpi_statistics_date", "")
+    ave = row.get("ave", "")
+    flag = row.get("Priority Flag", "")
+
+    col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 2, 2, 2, 1, 1, 2])
+    with col1:
+        st.markdown(f"**{eq}**")
+    with col2:
+        st.markdown(f"{ckpi}")
+    with col3:
+        st.markdown(f"{date}")
+    with col4:
+        st.markdown(f"{ave}")
+    with col5:
+        checked = st.checkbox("✅", key=f"chk_{i}", value=row["✅ checked"])
+    with col6:
+        wrong = st.checkbox("❌", key=f"wr_{i}", value=row["❌ wrong / review"])
+    with col7:
+        st.markdown(flag)
+
+    # Mutually exclusive logic
     if checked and wrong:
-        edited_df.at[i, "❌ wrong / review"] = False
+        wrong = False
 
-# --- Save Back to Session ---
-st.session_state.checked_state.update(edited_df)
-st.session_state.maint_df.update(edited_df)
+    # Append updated row
+    row["✅ checked"] = checked
+    row["❌ wrong / review"] = wrong
+    new_rows.append(row)
+
+# Update dataframe
+edited_df = pd.DataFrame(new_rows)
 
 # --- Highlight instantly ---
 def highlight_action(row):
@@ -159,6 +184,10 @@ def highlight_action(row):
 
 styled_df = edited_df.style.apply(highlight_action, axis=1)
 st.dataframe(styled_df, use_container_width=True)
+
+# --- Update Session ---
+st.session_state.checked_state.update(edited_df)
+st.session_state.maint_df.update(edited_df)
 
 # --- Word Export ---
 if st.button("✅ Submit and Generate Word Report"):
