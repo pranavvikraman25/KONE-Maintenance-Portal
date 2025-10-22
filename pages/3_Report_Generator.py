@@ -138,11 +138,11 @@ st.success("File read successfully.")
 cols = list(df.columns)
 
 # heuristics for columns
-eq_col = detect_column(cols, ["eq", "equipment", "eq_id", "equipmentid", "equipment_id"]) or detect_column(cols, ["id"]) 
-date_col = detect_column(cols, ["date", "timestamp", "time", "reading_date"])
-ckpi_col = detect_column(cols, ["ckpi", "kpi", "parameter", "indicator", "ckpi_id", "ckpiid"])
-floor_col = detect_column(cols, ["floor", "storey", "level"])
-ave_col = detect_column(cols, ["ave", "avg", "value", "reading", "measurement", "mean"])
+eq_col = detect_column(cols, ["eq"])
+date_col = detect_column(cols, ["date"])
+ckpi_col = detect_column(cols, ["ckpi", "kpi"])
+floor_col = detect_column(cols, ["floor"])
+ave_col = detect_column(cols, ["ave", "value"])
 
 # show detected columns to user (encourage verification)
 st.write("Detected columns (automatically):")
@@ -154,14 +154,31 @@ st.write({
     "Value/Average column": ave_col
 })
 
-# If any of the required columns are missing, allow user to pick from existing columns
+# ------------------ Confirm or override column selection ------------------
 st.subheader("Confirm or override column selection (if detection missed any)")
 
-eq_col = st.selectbox("EQ column", options=[None] + cols, index=(cols.index(eq_col) if eq_col in cols else 0))
-date_col = st.selectbox("Date column", options=[None] + cols, index=(cols.index(date_col) if date_col in cols else 0))
-ckpi_col = st.selectbox("CKPI/KPI column", options=[None] + cols, index=(cols.index(ckpi_col) if ckpi_col in cols else 0))
-floor_col = st.selectbox("Floor column", options=[None] + cols, index=(cols.index(floor_col) if floor_col in cols else 0))
-ave_col = st.selectbox("Value/Ave column", options=[None] + cols, index=(cols.index(ave_col) if ave_col in cols else 0))
+# Define defaults
+default_eq = "eq"
+default_date = "ckpi_statistics_date"
+default_ckpi = "ckpi"
+
+# Automatically preselect defaults if they exist in the columns
+eq_col = st.selectbox("EQ column", options=[None] + cols, 
+                      index=(cols.index(default_eq) + 1) if default_eq in cols else (cols.index(eq_col) + 1 if eq_col in cols else 0))
+
+date_col = st.selectbox("Date column", options=[None] + cols, 
+                        index=(cols.index(default_date) + 1) if default_date in cols else (cols.index(date_col) + 1 if date_col in cols else 0))
+
+ckpi_col = st.selectbox("CKPI/KPI column", options=[None] + cols, 
+                        index=(cols.index(default_ckpi) + 1) if default_ckpi in cols else (cols.index(ckpi_col) + 1 if ckpi_col in cols else 0))
+
+# For Floor and Value, keep manual flexibility
+floor_col = st.selectbox("Floor column", options=[None] + cols, 
+                         index=(cols.index(floor_col) + 1) if floor_col in cols else 0)
+
+ave_col = st.selectbox("Value/Ave column", options=[None] + cols, 
+                       index=(cols.index(ave_col) + 1) if ave_col in cols else 0)
+
 
 # Validate
 required = {"EQ": eq_col, "Date": date_col, "CKPI": ckpi_col, "Floor": floor_col, "Value": ave_col}
@@ -324,7 +341,12 @@ def build_report_doc(agg_df, selected_eqs, selected_keys, selected_kpis):
             doc.add_paragraph("")
 
             # Floors
-            floors = sorted(page_df[floor_col].dropna().unique(), key=lambda x: str(x))
+            # Sort floors numerically if possible, else lexicographically
+            floors = sorted(
+                page_df[floor_col].dropna().unique(),
+                key=lambda x: (int(x) if str(x).isdigit() else float('inf'), str(x))
+            )
+
             if not floors:
                 doc.add_paragraph("No floor data for this EQ/date.")
                 doc.add_page_break()
