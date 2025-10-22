@@ -366,15 +366,7 @@ if not report_df.empty:
         data=df_to_excel_bytes(report_df),
         file_name="kpi_actionable_report.xlsx"
     )
-    st.markdown("### 🧠 AI Summary (via Ollama)")
-    summary_text = ollama_summarize(report_df.to_csv(index=False))
-    if summary_text:
-        st.write(summary_text)
-    else:
-        st.info("Ollama not available or returned no summary. Install Ollama for local AI insights.")
-else:
-    st.info("No action needed for selected filters.")
-
+    
 # ---------------- Footer ----------------
 st.markdown("---")
 st.caption("© 2025 KONE Internal Dashboard | Developed by PRANAV VIKRAMAN S S")
