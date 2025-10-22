@@ -201,11 +201,18 @@ selected_eq = st.sidebar.multiselect("Select EQ(s)", eq_choices, default=eq_choi
 floor_choices = sorted(df[floor_col].dropna().unique())
 selected_floors = st.sidebar.multiselect("Select Floor(s)", floor_choices, default=floor_choices[:2] if floor_choices else [])
 
+# --- Limit KPIs to only the 6 main ones defined in KPI_THRESHOLDS ---
 file_kpis = df[["_ckpi_norm", ckpi_col]].drop_duplicates().set_index("_ckpi_norm")[ckpi_col].to_dict()
-available_kpis = sorted(list(set(list(KPI_THRESHOLDS.keys()) + list(file_kpis.keys()))))
-kpi_display = [file_kpis[k] if k in file_kpis else k for k in available_kpis]
-selected_kpis_display = st.sidebar.multiselect("Select KPI(s)", kpi_display, default=kpi_display[:6] if kpi_display else [])
+
+# Only include KPIs that match our defined six main KPI keys
+main_kpis = list(KPI_THRESHOLDS.keys())
+filtered_kpis = {k: file_kpis.get(k, k) for k in main_kpis if k in file_kpis or k in KPI_THRESHOLDS}
+
+# Display names in sidebar (pretty form)
+kpi_display = [filtered_kpis[k] for k in filtered_kpis.keys()]
+selected_kpis_display = st.sidebar.multiselect("Select KPI(s)", kpi_display, default=kpi_display)
 selected_kpis = [normalize_text(s) for s in selected_kpis_display]
+
 
 st.sidebar.markdown("### Date Range")
 preset_range = st.sidebar.selectbox("Quick Select", ["Custom", "Past Week", "Past Month", "Past 3 Months", "Past 6 Months", "Past Year"])
