@@ -19,7 +19,6 @@ load_css("assets/style.css")
 with st.sidebar:
     st.image("assets/logo.png", width=160)
     st.markdown("### 🏢 KONE Maintenance Portal")
-    st.caption("Built by **PRANAV VIKRAMAN S S**")
     st.markdown("---")
     st.write("Use the left sidebar to navigate across different modules of the portal.")
     st.markdown("---")
@@ -71,15 +70,13 @@ with col2:
     """)
 
     st.markdown("""
-    **6️⃣ Equipment Health Score**  
-    Compute weighted KPI health per EQ — identify which units need inspection first.
+    **6️⃣ Equipment Health Forecast**  
+    Compute weighted KPI health per EQ — identify which units need inspection first and Forecast upcoming failures using time-series AI models - Prophet
     """)
 
 st.markdown("""
-**7️⃣ Prediction Module**  
-Forecast upcoming failures using time-series AI models like Prophet or LSTM.
 
-**8️⃣ Report Archive**  
+**7️⃣ Report Archive**  
 Browse and download generated reports by date or equipment ID.
 """)
 
@@ -94,4 +91,5 @@ st.markdown("""
 
 st.markdown("---")
 st.caption("© 2025 KONE Digital Maintenance | Developed by PRANAV VIKRAMAN S S")
+
 
