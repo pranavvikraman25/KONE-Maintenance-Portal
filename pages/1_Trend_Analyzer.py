@@ -331,7 +331,7 @@ st.markdown("**Legend:** 🟢 Within threshold (OK) &nbsp;&nbsp; 🟡 Outside th
 st.markdown("---")
 
 # ---------------- Actionable Insights ----------------
-st.subheader("⚡ Actionable Insights Report ⚡")
+st.subheader(" Actionable Insights Report ")
 
 REMEDY_BY_KPI = {
     "doorfriction": "Lubricate guide rails; inspect rollers (Solution 1)",
