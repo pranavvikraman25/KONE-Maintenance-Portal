@@ -80,11 +80,15 @@ scores = (
     .reset_index()
 )
 
+# Normalize and weight
 scores["norm_std"] = scores["std_ave"] / (scores["std_ave"].max() + 1e-9)
 scores["HealthScore"] = (100 - scores["norm_std"] * 100).round(2)
+
+# ✅ FIX 1: Recreate normalized KPI column for weighting
 scores["_ckpi_norm"] = scores["ckpi"].astype(str).apply(lambda s: "".join(ch for ch in s.lower() if ch.isalnum()))
 scores["Weight"] = scores["_ckpi_norm"].map(weights).fillna(0.5)
 
+# Weighted score
 scores["WeightedScore"] = (scores["HealthScore"] * scores["Weight"]).round(2)
 
 eq_health = (
@@ -94,14 +98,20 @@ eq_health = (
     .rename(columns={"WeightedScore": "HealthScore"})
 )
 
-eq_health["HealthStatus"] = np.select(
-    [
-        eq_health["HealthScore"] >= 85,
-        (eq_health["HealthScore"] >= 70) & (eq_health["HealthScore"] < 85),
-        eq_health["HealthScore"] < 70
-    ],
-    ["✅ Excellent", "🟡 Needs Monitoring", "🔴 Critical"]
-)
+# ✅ FIX 2: Ensure numeric and safe HealthStatus creation
+eq_health["HealthScore"] = pd.to_numeric(eq_health["HealthScore"], errors="coerce").fillna(0)
+if not eq_health.empty:
+    eq_health["HealthStatus"] = np.select(
+        [
+            eq_health["HealthScore"] >= 85,
+            (eq_health["HealthScore"] >= 70) & (eq_health["HealthScore"] < 85),
+            eq_health["HealthScore"] < 70
+        ],
+        ["✅ Excellent", "🟡 Needs Monitoring", "🔴 Critical"],
+        default="⚙️ Unknown"
+    )
+else:
+    st.warning("No data available to compute Health Status.")
 
 # --- Trend Over Time ---
 st.markdown("### 🧩 Health Trend Over Time")
@@ -153,7 +163,7 @@ for eq in trend["eq"].unique():
         y = sub["HealthScore"].values
         model = LinearRegression().fit(X, y)
         next_pred = model.predict([[len(sub) + 1]])[0]
-        predictions.append((eq, next_pred))
+        predictions.append((eq, round(next_pred, 2)))
 pred_df = pd.DataFrame(predictions, columns=["Equipment", "Predicted_Next_Month"])
 st.dataframe(pred_df)
 
