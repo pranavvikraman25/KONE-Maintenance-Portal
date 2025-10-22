@@ -7,4 +7,5 @@ prophet
 python-docx
 xlrd==2.0.1
 openai
+scikit-learn
 
