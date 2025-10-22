@@ -21,22 +21,18 @@ Each row represents a CKPI reading — mark:
 Each action instantly changes color (green for ✅, red for ❌) and can be downloaded as a **Word (.docx)** report.
 """)
 
-# --- Session Setup ---
-if "uploaded_file" not in st.session_state:
-    st.session_state.uploaded_file = None
-if "maint_df" not in st.session_state:
-    st.session_state.maint_df = None
-if "maint_table_state" not in st.session_state:
-    st.session_state.maint_table_state = None
+# --- Session State Setup ---
+for key in ["uploaded_file", "maint_df", "maint_table_state"]:
+    if key not in st.session_state:
+        st.session_state[key] = None
 
-# --- Upload Section ---
+# --- File Upload ---
 uploaded = st.file_uploader("📂 Upload Actionable Report", type=["xlsx", "csv"])
 if uploaded:
     try:
-        df = pd.read_excel(uploaded) if uploaded.name.endswith('.xlsx') else pd.read_csv(uploaded)
+        df = pd.read_excel(uploaded) if uploaded.name.endswith(".xlsx") else pd.read_csv(uploaded)
         df["ckpi"] = df["ckpi"].astype(str).str.lower()
-        st.session_state.maint_df = df
-        st.session_state.uploaded_file = uploaded
+        st.session_state.maint_df = df.copy()
         st.session_state.maint_table_state = df.copy()
         st.success("✅ File loaded successfully.")
     except Exception as e:
@@ -44,13 +40,13 @@ if uploaded:
         st.stop()
 else:
     if st.session_state.maint_df is not None:
-        df = st.session_state.maint_df
+        df = st.session_state.maint_df.copy()
         st.info("Using previously uploaded file.")
     else:
         st.warning("Please upload a file to continue.")
         st.stop()
 
-# --- KPI Filter Restriction ---
+# --- Define KPI Filter ---
 KEY_CKPIS = [
     "doorfriction",
     "cumulativedoorspeederror",
@@ -69,16 +65,20 @@ available_ckpis = [k for k in KEY_CKPIS if k in df["ckpi"].unique()]
 sel_ckpis = st.sidebar.multiselect("Select KPI(s)", available_ckpis, default=available_ckpis)
 
 # --- Date Range Filter ---
-df["ckpi_statistics_date"] = pd.to_datetime(df["ckpi_statistics_date"], errors="coerce")
-if df["ckpi_statistics_date"].isna().all():
-    st.warning("Invalid or missing date values in your file.")
+if "ckpi_statistics_date" in df.columns:
+    df["ckpi_statistics_date"] = pd.to_datetime(df["ckpi_statistics_date"], errors="coerce")
+    if df["ckpi_statistics_date"].isna().all():
+        st.warning("⚠️ No valid dates found in your file.")
+        st.stop()
+else:
+    st.warning("⚠️ Missing 'ckpi_statistics_date' column.")
     st.stop()
 
 min_d, max_d = df["ckpi_statistics_date"].min().date(), df["ckpi_statistics_date"].max().date()
 sel_range = st.sidebar.date_input("Select Date Range", [min_d, max_d], min_value=min_d, max_value=max_d)
 start_d, end_d = sel_range
 
-# --- Apply Filters ---
+# --- Filtered Data ---
 df_filtered = df[
     (df["eq"].isin(sel_eqs)) &
     (df["ckpi"].isin(sel_ckpis)) &
@@ -89,6 +89,11 @@ df_filtered = df[
 if df_filtered.empty:
     st.warning("No data found for selected filters.")
     st.stop()
+
+# --- Add Missing Columns Safely ---
+for col in ["✅ checked", "❌ wrong / review"]:
+    if col not in df_filtered.columns:
+        df_filtered[col] = False
 
 # --- Variability Index ---
 def calc_var(values):
@@ -108,11 +113,6 @@ if "ave" in df_filtered.columns:
     df_filtered = pd.merge(df_filtered, var_df, on=["eq", "ckpi"], how="left")
     df_filtered["Priority Flag"] = np.where(df_filtered["variability_index"] > 30, "⚠️ High Variability", "")
 
-# --- Checkbox Columns ---
-for col in ["✅ checked", "❌ wrong / review"]:
-    if col not in df_filtered.columns:
-        df_filtered[col] = False
-
 # --- Control Buttons ---
 st.markdown("### 🧾 Maintenance Task Table")
 col1, col2 = st.columns(2)
@@ -129,11 +129,13 @@ with col2:
         st.session_state.maint_table_state = df_filtered.copy()
         st.rerun()
 
-# --- Optimized Editable Table (Fast) ---
-if st.session_state.maint_table_state is not None:
-    df_display = st.session_state.maint_table_state.copy()
-else:
-    df_display = df_filtered.copy()
+# --- Optimized Editable Table ---
+df_display = st.session_state.maint_table_state.copy() if st.session_state.maint_table_state is not None else df_filtered.copy()
+
+# Guarantee columns exist before display
+for col in ["✅ checked", "❌ wrong / review"]:
+    if col not in df_display.columns:
+        df_display[col] = False
 
 edited_df = st.data_editor(
     df_display,
@@ -142,19 +144,20 @@ edited_df = st.data_editor(
     num_rows="dynamic",
     key="maint_table",
     column_config={
-        "✅ checked": st.column_config.CheckboxColumn("✅ Checked", help="Mark task complete", default=False),
-        "❌ wrong / review": st.column_config.CheckboxColumn("❌ Review", help="Mark for recheck", default=False),
+        "✅ checked": st.column_config.CheckboxColumn("✅ Checked", help="Mark as completed"),
+        "❌ wrong / review": st.column_config.CheckboxColumn("❌ Review", help="Mark for recheck"),
     },
 )
 
 # --- Enforce Mutual Exclusivity ---
 for i in range(len(edited_df)):
-    if edited_df.at[i, "✅ checked"] and edited_df.at[i, "❌ wrong / review"]:
-        edited_df.at[i, "❌ wrong / review"] = False
+    if "✅ checked" in edited_df.columns and "❌ wrong / review" in edited_df.columns:
+        if bool(edited_df.at[i, "✅ checked"]) and bool(edited_df.at[i, "❌ wrong / review"]):
+            edited_df.at[i, "❌ wrong / review"] = False
 
 st.session_state.maint_table_state = edited_df.copy()
 
-# --- Highlight instantly ---
+# --- Row Highlighting ---
 def highlight_action(row):
     if row["✅ checked"]:
         return ["background-color: #b5e7a0"] * len(row)
@@ -162,21 +165,20 @@ def highlight_action(row):
         return ["background-color: #f4a6a6"] * len(row)
     return [""] * len(row)
 
-styled_df = edited_df.style.apply(highlight_action, axis=1)
-st.dataframe(styled_df, use_container_width=True)
+st.dataframe(edited_df.style.apply(highlight_action, axis=1), use_container_width=True)
 
-# --- Word Export ---
+# --- Export as Word (Landscape) ---
 if st.button("✅ Submit and Generate Word Report"):
     final_df = st.session_state.maint_table_state.copy()
     checked_df = final_df[final_df["✅ checked"]]
     wrong_df = final_df[final_df["❌ wrong / review"]]
 
     if checked_df.empty and wrong_df.empty:
-        st.warning("No maintenance actions marked.")
+        st.warning("⚠️ No tasks selected for export.")
     else:
         doc = Document()
 
-        # --- Landscape Setup ---
+        # Landscape layout
         section = doc.sections[-1]
         section.orientation = WD_ORIENT.LANDSCAPE
         section.page_width = Inches(11.69)
@@ -194,27 +196,18 @@ if st.button("✅ Submit and Generate Word Report"):
         table = doc.add_table(rows=1, cols=len(headers))
         table.style = "Table Grid"
 
-        # Header row
         hdr_cells = table.rows[0].cells
         for i, h in enumerate(headers):
             hdr_cells[i].text = str(h)
 
-        # Data rows
         for _, row in final_df.iterrows():
             row_cells = table.add_row().cells
             for i, h in enumerate(headers):
-                row_cells[i].text = str(row.get(h, ""))
-
-                # Row coloring
-                if row["✅ checked"]:
-                    shade_color = "C6EFCE"  # light green
-                elif row["❌ wrong / review"]:
-                    shade_color = "FFC7CE"  # light red
-                else:
-                    shade_color = "FFFFFF"
-
+                val = row.get(h, "")
+                row_cells[i].text = str(val)
+                color = "C6EFCE" if row.get("✅ checked") else "FFC7CE" if row.get("❌ wrong / review") else "FFFFFF"
                 row_cells[i]._tc.get_or_add_tcPr().append(
-                    parse_xml(r'<w:shd {} w:fill="{}"/>'.format(nsdecls('w'), shade_color))
+                    parse_xml(r'<w:shd {} w:fill="{}"/>'.format(nsdecls("w"), color))
                 )
 
         buffer = BytesIO()
@@ -222,7 +215,7 @@ if st.button("✅ Submit and Generate Word Report"):
         buffer.seek(0)
 
         st.download_button(
-            label="💾 Download Maintenance Report (Word)",
+            "💾 Download Maintenance Report (Word)",
             data=buffer,
             file_name=f"Maintenance_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
