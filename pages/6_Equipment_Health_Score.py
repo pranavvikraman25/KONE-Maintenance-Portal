@@ -82,7 +82,9 @@ scores = (
 
 scores["norm_std"] = scores["std_ave"] / (scores["std_ave"].max() + 1e-9)
 scores["HealthScore"] = (100 - scores["norm_std"] * 100).round(2)
+scores["_ckpi_norm"] = scores["ckpi"].astype(str).apply(lambda s: "".join(ch for ch in s.lower() if ch.isalnum()))
 scores["Weight"] = scores["_ckpi_norm"].map(weights).fillna(0.5)
+
 scores["WeightedScore"] = (scores["HealthScore"] * scores["Weight"]).round(2)
 
 eq_health = (
