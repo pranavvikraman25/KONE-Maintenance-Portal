@@ -4,6 +4,10 @@ import numpy as np
 from io import BytesIO
 from datetime import datetime
 from docx import Document
+from docx.enum.section import WD_ORIENT
+from docx.shared import Inches
+from docx.oxml import parse_xml
+from docx.oxml.ns import nsdecls
 
 st.set_page_config(page_title="Maintenance Tracker", layout="wide")
 st.title("🧰 Maintenance Tracker — Technician Action Center")
@@ -22,6 +26,8 @@ if "uploaded_file" not in st.session_state:
     st.session_state.uploaded_file = None
 if "maint_df" not in st.session_state:
     st.session_state.maint_df = None
+if "maint_table_state" not in st.session_state:
+    st.session_state.maint_table_state = None
 
 # --- Upload Section ---
 uploaded = st.file_uploader("📂 Upload Actionable Report", type=["xlsx", "csv"])
@@ -31,6 +37,7 @@ if uploaded:
         df["ckpi"] = df["ckpi"].astype(str).str.lower()
         st.session_state.maint_df = df
         st.session_state.uploaded_file = uploaded
+        st.session_state.maint_table_state = df.copy()
         st.success("✅ File loaded successfully.")
     except Exception as e:
         st.error(f"Error loading file: {e}")
@@ -83,7 +90,7 @@ if df_filtered.empty:
     st.warning("No data found for selected filters.")
     st.stop()
 
-# --- Add Variability Index ---
+# --- Variability Index ---
 def calc_var(values):
     v = pd.to_numeric(values, errors="coerce").dropna()
     if len(v) < 4:
@@ -102,19 +109,9 @@ if "ave" in df_filtered.columns:
     df_filtered["Priority Flag"] = np.where(df_filtered["variability_index"] > 30, "⚠️ High Variability", "")
 
 # --- Checkbox Columns ---
-if "✅ checked" not in df_filtered.columns:
-    df_filtered["✅ checked"] = False
-if "❌ wrong / review" not in df_filtered.columns:
-    df_filtered["❌ wrong / review"] = False
-
-# --- Persistent Checkbox State ---
-if "checked_state" not in st.session_state:
-    st.session_state.checked_state = df_filtered.copy()
-
-# Sync the new filtered view with stored state
-common_cols = list(set(df_filtered.columns) & set(st.session_state.checked_state.columns))
-for col in common_cols:
-    df_filtered[col] = st.session_state.checked_state[col].reindex(df_filtered.index, fill_value=False)
+for col in ["✅ checked", "❌ wrong / review"]:
+    if col not in df_filtered.columns:
+        df_filtered[col] = False
 
 # --- Control Buttons ---
 st.markdown("### 🧾 Maintenance Task Table")
@@ -123,56 +120,39 @@ with col1:
     if st.button("☑️ Select All"):
         df_filtered["✅ checked"] = True
         df_filtered["❌ wrong / review"] = False
-        st.session_state.checked_state.update(df_filtered)
-        st.session_state.maint_df.update(df_filtered)
+        st.session_state.maint_table_state = df_filtered.copy()
         st.rerun()
-
 with col2:
     if st.button("🚫 Deselect All"):
         df_filtered["✅ checked"] = False
         df_filtered["❌ wrong / review"] = False
-        st.session_state.checked_state.update(df_filtered)
-        st.session_state.maint_df.update(df_filtered)
+        st.session_state.maint_table_state = df_filtered.copy()
         st.rerun()
 
-# --- Instant Checkbox Table (Fast + Reliable) ---
-st.markdown("### ⚙️ Maintenance Task Review")
+# --- Optimized Editable Table (Fast) ---
+if st.session_state.maint_table_state is not None:
+    df_display = st.session_state.maint_table_state.copy()
+else:
+    df_display = df_filtered.copy()
 
-new_rows = []
-for i, row in df_filtered.iterrows():
-    eq = row.get("eq", "")
-    ckpi = row.get("ckpi", "")
-    date = row.get("ckpi_statistics_date", "")
-    ave = row.get("ave", "")
-    flag = row.get("Priority Flag", "")
+edited_df = st.data_editor(
+    df_display,
+    use_container_width=True,
+    hide_index=True,
+    num_rows="dynamic",
+    key="maint_table",
+    column_config={
+        "✅ checked": st.column_config.CheckboxColumn("✅ Checked", help="Mark task complete", default=False),
+        "❌ wrong / review": st.column_config.CheckboxColumn("❌ Review", help="Mark for recheck", default=False),
+    },
+)
 
-    col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 2, 2, 2, 1, 1, 2])
-    with col1:
-        st.markdown(f"**{eq}**")
-    with col2:
-        st.markdown(f"{ckpi}")
-    with col3:
-        st.markdown(f"{date}")
-    with col4:
-        st.markdown(f"{ave}")
-    with col5:
-        checked = st.checkbox("✅", key=f"chk_{i}", value=row["✅ checked"])
-    with col6:
-        wrong = st.checkbox("❌", key=f"wr_{i}", value=row["❌ wrong / review"])
-    with col7:
-        st.markdown(flag)
+# --- Enforce Mutual Exclusivity ---
+for i in range(len(edited_df)):
+    if edited_df.at[i, "✅ checked"] and edited_df.at[i, "❌ wrong / review"]:
+        edited_df.at[i, "❌ wrong / review"] = False
 
-    # Mutually exclusive logic
-    if checked and wrong:
-        wrong = False
-
-    # Append updated row
-    row["✅ checked"] = checked
-    row["❌ wrong / review"] = wrong
-    new_rows.append(row)
-
-# Update dataframe
-edited_df = pd.DataFrame(new_rows)
+st.session_state.maint_table_state = edited_df.copy()
 
 # --- Highlight instantly ---
 def highlight_action(row):
@@ -185,14 +165,9 @@ def highlight_action(row):
 styled_df = edited_df.style.apply(highlight_action, axis=1)
 st.dataframe(styled_df, use_container_width=True)
 
-# --- Update Session ---
-st.session_state.checked_state.update(edited_df)
-st.session_state.maint_df.update(edited_df)
-
 # --- Word Export ---
 if st.button("✅ Submit and Generate Word Report"):
-    final_df = st.session_state.checked_state.copy()
-
+    final_df = st.session_state.maint_table_state.copy()
     checked_df = final_df[final_df["✅ checked"]]
     wrong_df = final_df[final_df["❌ wrong / review"]]
 
@@ -202,8 +177,6 @@ if st.button("✅ Submit and Generate Word Report"):
         doc = Document()
 
         # --- Landscape Setup ---
-        from docx.enum.section import WD_ORIENT
-        from docx.shared import Inches
         section = doc.sections[-1]
         section.orientation = WD_ORIENT.LANDSCAPE
         section.page_width = Inches(11.69)
@@ -212,46 +185,38 @@ if st.button("✅ Submit and Generate Word Report"):
         section.right_margin = Inches(0.5)
         section.top_margin = Inches(0.5)
         section.bottom_margin = Inches(0.5)
-        
-        # --- Header ---
-        doc.add_heading("Maintenance Review Report", level=1)
 
+        doc.add_heading("Maintenance Review Report", level=1)
         doc.add_paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         doc.add_paragraph("")
 
-        headers = ["eq", "ckpi", "ckpi_statistics_date", "floor", "ave", "variability_index", "Priority Flag", "Status"]
+        headers = list(final_df.columns)
         table = doc.add_table(rows=1, cols=len(headers))
         table.style = "Table Grid"
+
+        # Header row
         hdr_cells = table.rows[0].cells
         for i, h in enumerate(headers):
-            hdr_cells[i].text = h
+            hdr_cells[i].text = str(h)
 
-        # Merge & fill rows
-        checked_df = checked_df.assign(Status="✅ Completed")
-        wrong_df = wrong_df.assign(Status="❌ Review Needed")
-        merged = pd.concat([checked_df, wrong_df], ignore_index=True)
-
-        for _, row in merged.iterrows():
+        # Data rows
+        for _, row in final_df.iterrows():
             row_cells = table.add_row().cells
             for i, h in enumerate(headers):
-                val = row.get(h, "")
-                row_cells[i].text = str(val)
+                row_cells[i].text = str(row.get(h, ""))
 
-            # color background (safe XML method)
-                from docx.oxml import parse_xml
-                from docx.oxml.ns import nsdecls
-                
-                if row["Status"].startswith("✅"):
+                # Row coloring
+                if row["✅ checked"]:
                     shade_color = "C6EFCE"  # light green
-                else:
+                elif row["❌ wrong / review"]:
                     shade_color = "FFC7CE"  # light red
-                
+                else:
+                    shade_color = "FFFFFF"
+
                 row_cells[i]._tc.get_or_add_tcPr().append(
                     parse_xml(r'<w:shd {} w:fill="{}"/>'.format(nsdecls('w'), shade_color))
                 )
 
-
-        # export file
         buffer = BytesIO()
         doc.save(buffer)
         buffer.seek(0)
