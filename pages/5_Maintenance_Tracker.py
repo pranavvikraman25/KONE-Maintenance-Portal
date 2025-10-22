@@ -117,19 +117,30 @@ if "__uid" not in base.columns:
     base = base.reset_index(drop=True)
     base["__uid"] = base.index.astype(int)
 
-# Apply equipment/kpi/date filters first
+# ✅ Ensure date column is datetime
+if "ckpi_statistics_date" in base.columns:
+    base["ckpi_statistics_date"] = pd.to_datetime(base["ckpi_statistics_date"], errors="coerce")
+else:
+    st.error("Missing 'ckpi_statistics_date' column in the uploaded file.")
+    st.stop()
+
+# Apply filters
 mask = pd.Series(True, index=base.index)
 if sel_eqs:
     mask &= base["eq"].isin(sel_eqs)
 if sel_ckpis:
     mask &= base["ckpi"].isin(sel_ckpis)
-mask &= base["ckpi_statistics_date"].dt.date.between(start_d, end_d)
 
-# Apply floor filter (compare as string)
+# ✅ Apply date filter safely (only where valid)
+valid_dates = base["ckpi_statistics_date"].notna()
+mask &= valid_dates & base.loc[valid_dates, "ckpi_statistics_date"].dt.date.between(start_d, end_d)
+
+# Apply floor filter
 if sel_floors and "floor" in base.columns:
     mask &= base["floor"].astype(str).isin(sel_floors)
 
 df_filtered = base[mask].copy()
+
 
 if df_filtered.empty:
     st.warning("No rows match the selected filters.")
