@@ -356,14 +356,12 @@ for rec in kpi_summary:
     if rec['peaks'] + rec['lows'] > rec['rows'] * 0.2:
         remedy = REMEDY_BY_KPI.get(normalize_text(rec['kpi']), "Follow standard inspection checklist")
         report_rows.append({
-            "KPI": rec['kpi'],
             "Floor": rec['floor'],
-            "Rows": rec['rows'],
-            "Peaks": rec['peaks'],
-            "Lows": rec['lows'],
+            "Affected KPI": rec['kpi'],
             "Action Needed": "⚠️ High uncertainty → Technician check",
-            "Remedy / Reason": remedy
+            "Remedy": remedy
         })
+
 
 report_df = pd.DataFrame(report_rows)
 if not report_df.empty:
