@@ -16,104 +16,126 @@ st.markdown("""
 Upload your **Actionable Report (Excel/CSV)** from Trend Analysis to mark maintenance actions.  
 Each row represents a CKPI reading — mark:
 - ✅ **Checked** if the task is complete or verified  
-- ❌ **Wrong / Review** if the task needs attention
+- ❌ **Wrong / Review** if the task needs attention  
+
+Behavior:
+- Default floor selection = Floor 1 (if present), else first floor.
+- Select All / Deselect All act on the current filters and persist immediately.
+- Export to Word (.docx) preserves the current selections and colors.
 """)
 
-# --- Session State Setup ---
-for key in ["uploaded_file", "maint_df", "maint_table_state"]:
-    if key not in st.session_state:
-        st.session_state[key] = None
+# ---------------- Session state initialization ----------------
+for k in ("uploaded_file", "maint_df", "maint_table_state"):
+    if k not in st.session_state:
+        st.session_state[k] = None
 
-# --- File Upload ---
-uploaded = st.file_uploader("📂 Upload Actionable Report", type=["xlsx", "csv"])
+# ---------------- File upload / reuse ----------------
+uploaded = st.file_uploader("📂 Upload Actionable Report (Excel/CSV)", type=["xlsx", "csv"])
 if uploaded:
     try:
         df = pd.read_excel(uploaded) if uploaded.name.endswith(".xlsx") else pd.read_csv(uploaded)
-        df["ckpi"] = df["ckpi"].astype(str).str.lower()
+        # normalize ckpi text
+        if "ckpi" in df.columns:
+            df["ckpi"] = df["ckpi"].astype(str).str.lower()
+        # create stable uid if missing
+        if "__uid" not in df.columns:
+            df = df.reset_index(drop=True)
+            df["__uid"] = df.index.astype(int)
+        # ensure checkbox columns exist
+        for col in ("✅ checked", "❌ wrong / review"):
+            if col not in df.columns:
+                df[col] = False
         st.session_state.maint_df = df.copy()
         st.session_state.maint_table_state = df.copy()
-        st.success("✅ File loaded successfully.")
+        st.session_state.uploaded_file = uploaded
+        st.success("✅ File loaded and cached.")
     except Exception as e:
-        st.error(f"Error loading file: {e}")
+        st.error(f"Error reading file: {e}")
         st.stop()
 else:
     if st.session_state.maint_df is not None:
         df = st.session_state.maint_df.copy()
-        st.info("Using previously uploaded file.")
+        st.info("Using previously uploaded file from this session.")
     else:
-        st.warning("Please upload a file to continue.")
+        st.info("Upload an actionable report (Excel/CSV) to begin.")
         st.stop()
 
-# --- Define KPI Filter ---
+# ---------------- KEY CKPIS ----------------
 KEY_CKPIS = [
     "doorfriction",
     "cumulativedoorspeederror",
     "lockhookclosingtime",
     "lockhooktime",
     "maximumforceduringcompress",
-    "landingdoorlockrollerclearance"
+    "landingdoorlockrollerclearance",
 ]
 
-# --- Sidebar Filters ---
+# ---------------- Sidebar filters ----------------
 st.sidebar.header("🔍 Filters")
+
+# Equipment filter
 eqs = sorted(df["eq"].dropna().unique()) if "eq" in df.columns else []
 sel_eqs = st.sidebar.multiselect("Select Equipment(s)", eqs, default=eqs)
 
-available_ckpis = [k for k in KEY_CKPIS if k in df["ckpi"].unique()]
+# KPI filter limited to the 6 keys that exist in data
+available_ckpis = [k for k in KEY_CKPIS if k in df.get("ckpi", pd.Series([])).unique()]
 sel_ckpis = st.sidebar.multiselect("Select KPI(s)", available_ckpis, default=available_ckpis)
 
-# --- Date Range Filter ---
-if "ckpi_statistics_date" in df.columns:
-    df["ckpi_statistics_date"] = pd.to_datetime(df["ckpi_statistics_date"], errors="coerce")
-    if df["ckpi_statistics_date"].isna().all():
-        st.warning("⚠️ No valid dates found in your file.")
-        st.stop()
-else:
-    st.warning("⚠️ Missing 'ckpi_statistics_date' column.")
+# Date range (constrained to data)
+if "ckpi_statistics_date" not in df.columns:
+    st.error("Missing 'ckpi_statistics_date' column in your file.")
     st.stop()
-
-min_d, max_d = df["ckpi_statistics_date"].min().date(), df["ckpi_statistics_date"].max().date()
+df["ckpi_statistics_date"] = pd.to_datetime(df["ckpi_statistics_date"], errors="coerce")
+if df["ckpi_statistics_date"].isna().all():
+    st.error("Could not parse any dates in 'ckpi_statistics_date'.")
+    st.stop()
+min_d = df["ckpi_statistics_date"].min().date()
+max_d = df["ckpi_statistics_date"].max().date()
 sel_range = st.sidebar.date_input("Select Date Range", [min_d, max_d], min_value=min_d, max_value=max_d)
 start_d, end_d = sel_range
 
-# --- Floor Filter ---
+# Floor filter: default = "1" if present else first floor
+sel_floors = []
 if "floor" in df.columns:
-    try:
-        floors = sorted(df["floor"].dropna().unique().tolist())
-        floors = [str(f) for f in floors]  # Convert all to string
-        sel_floors = st.sidebar.multiselect("Select Floor(s)", floors, default=floors)
-    except Exception:
-        sel_floors = []
+    floors = sorted(df["floor"].dropna().unique(), key=lambda x: str(x))
+    floors_str = [str(f) for f in floors]
+    # default floor selection logic
+    default_floor = "1" if "1" in floors_str else (floors_str[0] if floors_str else None)
+    sel_floors = st.sidebar.multiselect("Select Floor(s)", floors_str, default=[default_floor] if default_floor else [])
 else:
     sel_floors = []
 
+# ---------------- Build filtered view (based on maint_table_state for checkbox persistence) ----------------
+base = st.session_state.maint_table_state.copy() if st.session_state.maint_table_state is not None else st.session_state.maint_df.copy()
 
-# --- Filtered Data ---
-# --- Apply All Filters (Equipment, KPI, Date, Floor) ---
-df_filtered = df[
-    (df["eq"].isin(sel_eqs)) &
-    (df["ckpi"].isin(sel_ckpis)) &
-    (df["ckpi_statistics_date"].dt.date >= start_d) &
-    (df["ckpi_statistics_date"].dt.date <= end_d)
-]
+# Ensure checkbox columns exist in base
+for col in ("✅ checked", "❌ wrong / review"):
+    if col not in base.columns:
+        base[col] = False
+# Ensure __uid exists
+if "__uid" not in base.columns:
+    base = base.reset_index(drop=True)
+    base["__uid"] = base.index.astype(int)
 
-# Apply floor filter if floor column exists
-if sel_floors and "floor" in df.columns:
-    df_filtered = df_filtered[df_filtered["floor"].astype(str).isin(sel_floors)]
+# Apply equipment/kpi/date filters first
+mask = pd.Series(True, index=base.index)
+if sel_eqs:
+    mask &= base["eq"].isin(sel_eqs)
+if sel_ckpis:
+    mask &= base["ckpi"].isin(sel_ckpis)
+mask &= base["ckpi_statistics_date"].dt.date.between(start_d, end_d)
 
-df_filtered = df_filtered.copy()
+# Apply floor filter (compare as string)
+if sel_floors and "floor" in base.columns:
+    mask &= base["floor"].astype(str).isin(sel_floors)
 
+df_filtered = base[mask].copy()
 
 if df_filtered.empty:
-    st.warning("No data found for selected filters.")
+    st.warning("No rows match the selected filters.")
     st.stop()
 
-# --- Add Missing Columns Safely ---
-for col in ["✅ checked", "❌ wrong / review"]:
-    if col not in df_filtered.columns:
-        df_filtered[col] = False
-
-# --- Variability Index ---
+# ---------------- Variability index (same as before) ----------------
 def calc_var(values):
     v = pd.to_numeric(values, errors="coerce").dropna()
     if len(v) < 4:
@@ -128,41 +150,45 @@ if "ave" in df_filtered.columns:
         .reset_index()
         .rename(columns={"ave": "variability_index"})
     )
-    df_filtered = pd.merge(df_filtered, var_df, on=["eq", "ckpi"], how="left")
+    # merge back into df_filtered by eq+ckpi, then update base copy to keep persistence consistent
+    df_filtered = df_filtered.merge(var_df, on=["eq", "ckpi"], how="left")
     df_filtered["Priority Flag"] = np.where(df_filtered["variability_index"] > 30, "⚠️ High Variability", "")
 
-if sel_floors:
-    st.info(f"📍 Showing data for Floor(s): {', '.join(sel_floors)}")
-else:
-    st.info("📍 Showing data for all floors")
-
-
-# --- Control Buttons ---
+# ---------------- Control buttons (Select All/Deselect All operate on filtered rows) ----------------
 st.markdown("### 🧾 Maintenance Task Table")
-col1, col2 = st.columns(2)
-with col1:
+c1, c2 = st.columns([1,1])
+with c1:
     if st.button("☑️ Select All"):
-        df_filtered["✅ checked"] = True
-        df_filtered["❌ wrong / review"] = False
-        st.session_state.maint_table_state = df_filtered.copy()
-        st.rerun()
-with col2:
+        uids = df_filtered["__uid"].tolist()
+        st.session_state.maint_table_state.loc[st.session_state.maint_table_state["__uid"].isin(uids), "✅ checked"] = True
+        st.session_state.maint_table_state.loc[st.session_state.maint_table_state["__uid"].isin(uids), "❌ wrong / review"] = False
+        st.experimental_rerun()
+with c2:
     if st.button("🚫 Deselect All"):
-        df_filtered["✅ checked"] = False
-        df_filtered["❌ wrong / review"] = False
-        st.session_state.maint_table_state = df_filtered.copy()
-        st.rerun()
+        uids = df_filtered["__uid"].tolist()
+        st.session_state.maint_table_state.loc[st.session_state.maint_table_state["__uid"].isin(uids), "✅ checked"] = False
+        st.session_state.maint_table_state.loc[st.session_state.maint_table_state["__uid"].isin(uids), "❌ wrong / review"] = False
+        st.experimental_rerun()
 
-# --- Optimized Editable Table ---
-df_display = st.session_state.maint_table_state.copy() if st.session_state.maint_table_state is not None else df_filtered.copy()
+# show info about selected floors (optional clarity)
+if sel_floors:
+    st.info(f"📍 Showing Floor(s): {', '.join(sel_floors)}")
+else:
+    st.info("📍 Showing all floors (no floor filter)")
 
-# Guarantee columns exist before display
-for col in ["✅ checked", "❌ wrong / review"]:
-    if col not in df_display.columns:
-        df_display[col] = False
+# ---------------- Display table using data_editor but persist by __uid ----------------
+# Prepare display frame (only filtered rows)
+display_cols = list(df_filtered.columns)  # includes __uid and checkbox cols
+display_df = df_filtered[display_cols].copy()
 
-edited_df = st.data_editor(
-    df_display,
+# Ensure checkbox columns exist
+for cc in ("✅ checked", "❌ wrong / review"):
+    if cc not in display_df.columns:
+        display_df[cc] = False
+
+# Use data_editor with checkbox column_config (fast)
+edited = st.data_editor(
+    display_df,
     use_container_width=True,
     hide_index=True,
     num_rows="dynamic",
@@ -173,36 +199,48 @@ edited_df = st.data_editor(
     },
 )
 
-# --- Enforce Mutual Exclusivity ---
-for i in range(len(edited_df)):
-    if "✅ checked" in edited_df.columns and "❌ wrong / review" in edited_df.columns:
-        if bool(edited_df.at[i, "✅ checked"]) and bool(edited_df.at[i, "❌ wrong / review"]):
-            edited_df.at[i, "❌ wrong / review"] = False
+# Enforce mutual exclusivity and write changes back to session_state.maint_table_state using __uid
+# 'edited' contains the filtered rows only; update maint_table_state by __uid
+if not edited.empty:
+    # ensure boolean fill
+    edited["✅ checked"] = edited["✅ checked"].fillna(False).astype(bool)
+    edited["❌ wrong / review"] = edited["❌ wrong / review"].fillna(False).astype(bool)
 
-st.session_state.maint_table_state = edited_df.copy()
+    for idx, row in edited.iterrows():
+        uid = row["__uid"]
+        # mutual exclusivity
+        if row["✅ checked"] and row["❌ wrong / review"]:
+            # prioritize the last clicked — but we can't detect last click here; prefer ✅ as previous behavior
+            row["❌ wrong / review"] = False
+        # update master state row by uid
+        mask_uid = st.session_state.maint_table_state["__uid"] == uid
+        for col in edited.columns:
+            st.session_state.maint_table_state.loc[mask_uid, col] = row[col]
 
-# --- Row Highlighting ---
+# Update display copy after persist (so highlight and export use latest)
+final_display = st.session_state.maint_table_state.loc[st.session_state.maint_table_state["__uid"].isin(display_df["__uid"])].copy()
+
+# ---------------- Highlight rows visually in Streamlit ----------------
 def highlight_action(row):
-    if row["✅ checked"]:
+    if row.get("✅ checked"):
         return ["background-color: #b5e7a0"] * len(row)
-    elif row["❌ wrong / review"]:
+    if row.get("❌ wrong / review"):
         return ["background-color: #f4a6a6"] * len(row)
     return [""] * len(row)
 
-st.dataframe(edited_df.style.apply(highlight_action, axis=1), use_container_width=True)
+st.dataframe(final_display.style.apply(highlight_action, axis=1), use_container_width=True)
 
-# --- Export as Word (Landscape) ---
+# ---------------- Export to Word (Landscape), include all columns ----------------
 if st.button("✅ Submit and Generate Word Report"):
-    final_df = st.session_state.maint_table_state.copy()
-    checked_df = final_df[final_df["✅ checked"]]
-    wrong_df = final_df[final_df["❌ wrong / review"]]
+    master = st.session_state.maint_table_state.copy()
+    checked_df = master[master["✅ checked"] == True]
+    wrong_df = master[master["❌ wrong / review"] == True]
 
     if checked_df.empty and wrong_df.empty:
-        st.warning("⚠️ No tasks selected for export.")
+        st.warning("No tasks selected. Please mark items before exporting.")
     else:
         doc = Document()
-
-        # Landscape layout
+        # set landscape
         section = doc.sections[-1]
         section.orientation = WD_ORIENT.LANDSCAPE
         section.page_width = Inches(11.69)
@@ -216,31 +254,38 @@ if st.button("✅ Submit and Generate Word Report"):
         doc.add_paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         doc.add_paragraph("")
 
-        headers = list(final_df.columns)
+        # include all columns in master (ordered)
+        headers = list(master.columns)
         table = doc.add_table(rows=1, cols=len(headers))
         table.style = "Table Grid"
-
         hdr_cells = table.rows[0].cells
         for i, h in enumerate(headers):
             hdr_cells[i].text = str(h)
 
-        for _, row in final_df.iterrows():
+        # add rows in the same order as master (so export is stable)
+        for _, r in master.iterrows():
             row_cells = table.add_row().cells
             for i, h in enumerate(headers):
-                val = row.get(h, "")
-                row_cells[i].text = str(val)
-                color = "C6EFCE" if row.get("✅ checked") else "FFC7CE" if row.get("❌ wrong / review") else "FFFFFF"
+                cell_text = r.get(h, "")
+                row_cells[i].text = "" if pd.isna(cell_text) else str(cell_text)
+                # shading per row
+                if r.get("✅ checked"):
+                    color = "C6EFCE"
+                elif r.get("❌ wrong / review"):
+                    color = "FFC7CE"
+                else:
+                    color = "FFFFFF"
                 row_cells[i]._tc.get_or_add_tcPr().append(
                     parse_xml(r'<w:shd {} w:fill="{}"/>'.format(nsdecls("w"), color))
                 )
 
-        buffer = BytesIO()
-        doc.save(buffer)
-        buffer.seek(0)
-
+        # save to buffer and provide download
+        buf = BytesIO()
+        doc.save(buf)
+        buf.seek(0)
         st.download_button(
             "💾 Download Maintenance Report (Word)",
-            data=buffer,
+            data=buf,
             file_name=f"Maintenance_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
