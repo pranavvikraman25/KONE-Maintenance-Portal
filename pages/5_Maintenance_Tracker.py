@@ -78,13 +78,33 @@ min_d, max_d = df["ckpi_statistics_date"].min().date(), df["ckpi_statistics_date
 sel_range = st.sidebar.date_input("Select Date Range", [min_d, max_d], min_value=min_d, max_value=max_d)
 start_d, end_d = sel_range
 
+# --- Floor Filter ---
+if "floor" in df.columns:
+    try:
+        floors = sorted(df["floor"].dropna().unique().tolist())
+        floors = [str(f) for f in floors]  # Convert all to string
+        sel_floors = st.sidebar.multiselect("Select Floor(s)", floors, default=floors)
+    except Exception:
+        sel_floors = []
+else:
+    sel_floors = []
+
+
 # --- Filtered Data ---
+# --- Apply All Filters (Equipment, KPI, Date, Floor) ---
 df_filtered = df[
     (df["eq"].isin(sel_eqs)) &
     (df["ckpi"].isin(sel_ckpis)) &
     (df["ckpi_statistics_date"].dt.date >= start_d) &
     (df["ckpi_statistics_date"].dt.date <= end_d)
-].copy()
+]
+
+# Apply floor filter if floor column exists
+if sel_floors and "floor" in df.columns:
+    df_filtered = df_filtered[df_filtered["floor"].astype(str).isin(sel_floors)]
+
+df_filtered = df_filtered.copy()
+
 
 if df_filtered.empty:
     st.warning("No data found for selected filters.")
@@ -112,6 +132,12 @@ if "ave" in df_filtered.columns:
     )
     df_filtered = pd.merge(df_filtered, var_df, on=["eq", "ckpi"], how="left")
     df_filtered["Priority Flag"] = np.where(df_filtered["variability_index"] > 30, "⚠️ High Variability", "")
+
+if sel_floors:
+    st.info(f"📍 Showing data for Floor(s): {', '.join(sel_floors)}")
+else:
+    st.info("📍 Showing data for all floors")
+
 
 # --- Control Buttons ---
 st.markdown("### 🧾 Maintenance Task Table")
