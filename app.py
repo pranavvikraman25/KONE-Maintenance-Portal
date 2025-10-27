@@ -3,7 +3,7 @@ import streamlit as st
 
 # --- Page Setup ---
 st.set_page_config(
-    page_title="KONE Predictive Maintenance Portal",
+    page_title="KONE Maintenance Portal",
     layout="wide",
     page_icon="🧭"
 )
@@ -27,7 +27,7 @@ with st.sidebar:
                "and generate actionable insights for predictive maintenance.")
 
 # --- Main Page ---
-st.title("KONE Maintenance Intelligence Portal")
+st.title("KONE Predictive Maintenance Portal")
 st.markdown("""
 Welcome to **KONE’s Centralized Maintenance Dashboard**,  
 a unified portal designed to support the **Engineering Analytics** and **Field Maintenance** teams.
@@ -91,6 +91,7 @@ st.markdown("""
 
 st.markdown("---")
 st.caption("© 2025 KONE Digital Maintenance | Developed by PRANAV VIKRAMAN S S")
+
 
 
 
