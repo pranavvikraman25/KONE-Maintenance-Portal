@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -298,7 +297,8 @@ for kpi_norm in selected_kpis:
             name=f"Floor {floor}",
             line=dict(color=color, width=2),
             marker=dict(size=8, color=status_colors, line=dict(color="#000", width=1)),
-            hovertemplate="Date: %{x|%m/%d/%Y}<br>Floor: "+str(floor)+"<br>ave: %{y:.2f}<extra></extra>"
+            hovertemplate="Date: %{x|%d.%m.%Y}<br>Floor: "+str(floor)+"<br>ave: %{y:.2f}<extra></extra>"
+
         ))
 
         peaks, lows = detect_peaks_lows(df_floor[ave_col].values, low_thresh, high_thresh, std_factor)
