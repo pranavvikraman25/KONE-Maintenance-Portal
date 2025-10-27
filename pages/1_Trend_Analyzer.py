@@ -214,21 +214,33 @@ selected_kpis_display = st.sidebar.multiselect("Select KPI(s)", kpi_display, def
 selected_kpis = [normalize_text(s) for s in selected_kpis_display]
 
 
+# --- Date Range Filter ---
 st.sidebar.markdown("### Date Range")
-preset_range = st.sidebar.selectbox("Quick Select", ["Custom", "Past Week", "Past Month", "Past 3 Months", "Past 6 Months", "Past Year"])
-today = date.today()
+
+preset_range = st.sidebar.selectbox(
+    "Quick Select",
+    ["Custom", "Past Week", "Past Month", "Past 3 Months", "Past 6 Months", "Past Year"]
+)
+
+# Use the last date in the uploaded file instead of today
+latest_date = df[date_col].max().date()
+earliest_date = df[date_col].min().date()
+
 if preset_range == "Custom":
-    start_date, end_date = st.sidebar.date_input("Select Date Range", [df[date_col].min().date(), df[date_col].max().date()])
+    start_date, end_date = st.sidebar.date_input(
+        "Select Date Range", [earliest_date, latest_date]
+    )
 elif preset_range == "Past Week":
-    start_date, end_date = today - timedelta(days=7), today
+    start_date, end_date = latest_date - timedelta(days=7), latest_date
 elif preset_range == "Past Month":
-    start_date, end_date = today - timedelta(days=30), today
+    start_date, end_date = latest_date - timedelta(days=30), latest_date
 elif preset_range == "Past 3 Months":
-    start_date, end_date = today - timedelta(days=90), today
+    start_date, end_date = latest_date - timedelta(days=90), latest_date
 elif preset_range == "Past 6 Months":
-    start_date, end_date = today - timedelta(days=180), today
-else:
-    start_date, end_date = today - timedelta(days=365), today
+    start_date, end_date = latest_date - timedelta(days=180), latest_date
+else:  # Past Year
+    start_date, end_date = latest_date - timedelta(days=365), latest_date
+
 
 std_factor = st.sidebar.slider("Peak/Low Sensitivity", 0.5, 3.0, 1.0, 0.1)
 
