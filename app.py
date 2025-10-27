@@ -58,12 +58,7 @@ with col1:
     """)
 
 with col2:
-    st.markdown("""
-    **4️⃣ AI Chatbot (Anomaly Q&A)**  
-    Interact with your KPI dataset using **Llama 3 (via Ollama)**.  
-    Ask questions like “Which EQ had most peaks last week?”
-    """)
-
+    
     st.markdown("""
     **5️⃣ Maintenance Tracker**  
     Technicians can mark “Checked” / “Resolved” on issues from the Actionable Report.
@@ -74,12 +69,17 @@ with col2:
     Compute weighted KPI health per EQ — identify which units need inspection first and Forecast upcoming failures using time-series AI models - Prophet
     """)
 
-st.markdown("""
-
-**7️⃣ Report Archive**  
-Browse and download generated reports by date or equipment ID.
-""")
-
+    st.markdown("""
+    
+    **7️⃣ Report Archive**  
+    Browse and download generated reports by date or equipment ID.
+    """)
+    
+     st.markdown("""
+    **4️⃣ AI Chatbot (Anomaly Q&A)**  
+    Interact with your KPI dataset using **Llama 3 (via Ollama)**.  
+    Ask questions like “Which EQ had most peaks last week?”
+    """)
 st.markdown("---")
 st.markdown("### 📘 How to Use")
 st.markdown("""
@@ -91,6 +91,7 @@ st.markdown("""
 
 st.markdown("---")
 st.caption("© 2025 KONE Digital Maintenance | Developed by PRANAV VIKRAMAN S S")
+
 
 
 
