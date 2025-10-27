@@ -3,7 +3,7 @@ import streamlit as st
 
 # --- Page Setup ---
 st.set_page_config(
-    page_title="KONE Maintenance Intelligence Portal",
+    page_title="KONE Predictive Maintenance Portal",
     layout="wide",
     page_icon="🧭"
 )
@@ -91,5 +91,6 @@ st.markdown("""
 
 st.markdown("---")
 st.caption("© 2025 KONE Digital Maintenance | Developed by PRANAV VIKRAMAN S S")
+
 
 
