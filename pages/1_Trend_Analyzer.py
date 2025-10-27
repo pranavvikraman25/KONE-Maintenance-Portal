@@ -30,7 +30,7 @@ def get_uploaded_file():
 #------changed code----------
 # ---------------- Page config ----------------
 st.set_page_config(page_title="CKPI Multi-KPI Analyzer", layout="wide")
-st.title("Make Trend Analysis for Different Equipments")
+st.title("Trend Analysis for Different Equipments")
 
 # ---------------- Load Custom CSS (KONE Theme) ----------------
 def load_css(file_name):
