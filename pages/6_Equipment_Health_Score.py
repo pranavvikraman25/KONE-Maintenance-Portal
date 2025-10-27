@@ -1,4 +1,4 @@
-# 6_Equipment_Health_Forecast.py
+# pages/6_Equipment_Health_Forecast_with_ref.py
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -8,48 +8,135 @@ from sklearn.linear_model import LinearRegression
 import subprocess, shlex
 from datetime import timedelta
 
-# Try importing Prophet safely
+# Optional libs
 try:
     from prophet import Prophet
     PROPHET_AVAILABLE = True
-except ImportError:
+except Exception:
     PROPHET_AVAILABLE = False
 
-# --- Page Config ---
-st.set_page_config(page_title="Equipment Health & Forecast Intelligence", layout="wide")
-st.title("⚙️ Equipment Health & Forecast Intelligence Dashboard")
+# --- Page config ---
+st.set_page_config(page_title="Health & Forecast (with KPI Reference)", layout="wide")
+st.title("⚙️ Equipment Health & Forecast — (Reference + Analysis)")
 
-st.markdown("""
-This module combines **Equipment Health Scoring** 🩺 and **Predictive Forecasting** 📈  
-to help you visualize **current stability** and **future performance trends** of key KPIs.
-""")
+# ---------------- KPI reference table (render as styled HTML) ----------------
+# Reference strings (No visit / DMP visit / Repair needed)
+KPI_REFERENCE = {
+    "doorfriction": {
+        "label": "Door friction",
+        "no_visit": "40N to 54N",
+        "dmp_visit": "> 54N or < 40N",
+        "repair": "> 90N or < 35N"
+    },
+    "cumulativedoorspeederror": {
+        "label": "Door speed error",
+        "no_visit": "0.06m/s to 0.08m/s",
+        "dmp_visit": "> 0.08m/s or < 0.06m/s",
+        "repair": "> 0.15m/s or < 0.02m/s"
+    },
+    "lockhookclosingtime": {
+        "label": "Landing door lock hook closing time",
+        "no_visit": "0.2s to 0.6s",
+        "dmp_visit": "> 0.6s or < 0.2s",
+        "repair": "> 1.2s or < -0.5s"
+    },
+    "lockhooktime": {
+        "label": "Landing door lock hook open time",
+        "no_visit": "> 0.4s",
+        "dmp_visit": "< 0.4s",
+        "repair": "< 0.1s"
+    },
+    "maximumforceduringcompress": {
+        "label": "Maximum force during coupler compress",
+        "no_visit": "5N to 28N",
+        "dmp_visit": "< 5N or > 28N",
+        "repair": "> 40N or < -10N"
+    },
+    "landingdoorlockrollerclearance": {
+        "label": "Landing door lock roller clearance",
+        "no_visit": "< 0.029m",
+        "dmp_visit": "> 0.029m",
+        "repair": "> 0.04m"
+    }
+}
 
-# --- File Upload ---
-uploaded = st.file_uploader("📁 Upload KPI Dataset", type=["xlsx", "csv", "json"])
-if not uploaded:
-    st.info("Upload KPI file first.")
-    st.stop()
+# Small helper to build the HTML table
+def render_reference_table(kpi_ref):
+    css = """
+    <style>
+    .ref-table {border-collapse: collapse; width: 100%; font-family: "Segoe UI", Roboto, Arial;}
+    .ref-table th, .ref-table td {border: 1px solid #e6e6e6; padding: 8px; text-align: center;}
+    .ref-table thead th {background:#f7f7f8; font-size:14px; padding-top:10px; padding-bottom:10px;}
+    .ref-ok {background: #dff0d8;}           /* green */
+    .ref-warn {background: #fff3cd;}         /* yellow */
+    .ref-critical {background: #f8d7da;}     /* red */
+    .ref-label {text-align:left; font-weight:600; padding-left:12px;}
+    .ref-tooltip {position:relative;}
+    .ref-tooltip:hover {filter: brightness(0.98); cursor:help;}
+    .ref-caption {font-size:13px; color:#444; margin-bottom:8px;}
+    </style>
+    """
+    html = css + '<div class="ref-caption"><strong>cKPI Reference Ranges</strong> — Green = No visit required • Yellow = DMP visit required • Red = Repair needed</div>'
+    html += '<table class="ref-table"><thead><tr><th>cKPI</th><th class="ref-ok">No visit required</th><th class="ref-warn">DMP visit required</th><th class="ref-critical">Repair needed (SN trigger)</th></tr></thead><tbody>'
+    for key, v in kpi_ref.items():
+        html += f'<tr><td class="ref-label">{v["label"]}</td>'
+        html += f'<td class="ref-ok">{v["no_visit"]}</td>'
+        html += f'<td class="ref-warn">{v["dmp_visit"]}</td>'
+        html += f'<td class="ref-critical">{v["repair"]}</td></tr>'
+    html += '</tbody></table>'
+    return html
 
-# --- Read File ---
-if uploaded.name.endswith(".csv"):
-    df = pd.read_csv(uploaded)
-elif uploaded.name.endswith(".xlsx"):
-    df = pd.read_excel(uploaded)
-else:
-    df = pd.read_json(uploaded)
+st.markdown(render_reference_table(KPI_REFERENCE), unsafe_allow_html=True)
+st.markdown("---")
 
-required_cols = {"eq", "ckpi", "ave", "ckpi_statistics_date"}
-if not required_cols.issubset(df.columns):
-    st.error(f"Columns required: {', '.join(required_cols)}")
-    st.stop()
-
-# --- Normalize ---
-def normalize_text(s):
+# ---------------- Helpers ----------------
+def normalize_text(s: str):
+    if s is None: return ""
     return "".join(ch for ch in str(s).lower() if ch.isalnum())
 
-df["_ckpi_norm"] = df["ckpi"].astype(str).apply(normalize_text)
+def df_to_excel_bytes(df_):
+    out = BytesIO()
+    with pd.ExcelWriter(out, engine="openpyxl") as writer:
+        df_.to_excel(writer, index=False, sheet_name="report")
+    out.seek(0)
+    return out
 
-main_kpis = [
+# ---------------- Upload / read ----------------
+uploaded = st.file_uploader("Upload KPI dataset (xlsx / csv / json)", type=["xlsx","csv","json"])
+if not uploaded:
+    st.info("Upload a KPI file to begin. Required columns: eq, ckpi, ckpi_statistics_date, ave, floor (optional).")
+    st.stop()
+
+try:
+    name = uploaded.name.lower()
+    if name.endswith(".csv"):
+        df = pd.read_csv(uploaded)
+    elif name.endswith(".xlsx"):
+        df = pd.read_excel(uploaded)
+    else:
+        df = pd.read_json(uploaded)
+except Exception as e:
+    st.error(f"Could not read file: {e}")
+    st.stop()
+
+required = {"eq","ckpi","ave","ckpi_statistics_date"}
+if not required.issubset(set(df.columns)):
+    st.error(f"File missing required columns. Need: {', '.join(required)}")
+    st.stop()
+
+# Normalize and parse dates intelligently:
+# If majority of month values > 12 then treat as dd/mm/yyyy else month/day/year preference isn't perfect for all files,
+# but we coerce and attempt both formats; here we assume mm/dd/yyyy as default (as you requested earlier).
+df["ckpi_statistics_date"] = pd.to_datetime(df["ckpi_statistics_date"], dayfirst=False, errors="coerce")
+if df["ckpi_statistics_date"].isna().all():
+    # fallback try dayfirst True
+    df["ckpi_statistics_date"] = pd.to_datetime(df["ckpi_statistics_date"].astype(str), dayfirst=True, errors="coerce")
+
+df["_ckpi_norm"] = df["ckpi"].astype(str).apply(normalize_text)
+df["ave"] = pd.to_numeric(df["ave"], errors="coerce")
+
+# Keep only the 6 main KPIs (normalize keys)
+MAIN_KPIS = [
     "doorfriction",
     "cumulativedoorspeederror",
     "lockhookclosingtime",
@@ -57,191 +144,246 @@ main_kpis = [
     "maximumforceduringcompress",
     "landingdoorlockrollerclearance"
 ]
-df = df[df["_ckpi_norm"].isin(main_kpis)]
-
-df["ckpi_statistics_date"] = pd.to_datetime(df["ckpi_statistics_date"], errors="coerce")
-
-# --- Sidebar Filters ---
-st.sidebar.header("🔧 Filter Options")
-
-eq_choices = sorted(df["eq"].dropna().unique())
-selected_eq = st.sidebar.multiselect("Select Equipment", eq_choices, default=eq_choices)
-
-kpi_choices = sorted(df["ckpi"].dropna().unique())
-selected_kpi = st.sidebar.multiselect("Select KPI(s)", kpi_choices, default=kpi_choices)
-
-# KPI weights
-st.sidebar.markdown("### ⚖️ KPI Weights")
-weights = {k: st.sidebar.slider(k, 0.0, 1.0, 0.5, 0.1) for k in main_kpis}
-
-df_filtered = df[df["eq"].isin(selected_eq) & df["ckpi"].isin(selected_kpi)]
-if df_filtered.empty:
-    st.warning("No data after filtering.")
+# map available display names for sidebar
+kpi_display_map = {normalize_text(k):k for k in df["ckpi"].dropna().unique()}
+# unify df to only include main KPIs present in file
+df = df[df["_ckpi_norm"].isin(MAIN_KPIS)].copy()
+if df.empty:
+    st.error("No rows found for the 6 main KPIs in your file.")
     st.stop()
 
-# ---------------- HEALTH SCORE ----------------
-st.subheader("🩺 Equipment Health Status")
+# ---------------- Sidebar filters ----------------
+st.sidebar.header("Global Filters")
+eq_choices = sorted(df["eq"].dropna().astype(str).unique())
+selected_eq = st.sidebar.multiselect("Select EQ(s)", eq_choices, default=eq_choices[:3] if eq_choices else [])
 
-scores = (
-    df_filtered
-    .groupby(["eq", "ckpi"])
-    .agg(avg_ave=("ave", "mean"), std_ave=("ave", "std"))
+# list display names for KPI selector (user-friendly)
+display_kpis = sorted(df["ckpi"].dropna().unique())
+selected_kpis = st.sidebar.multiselect("Select KPI(s)", display_kpis, default=display_kpis[:6] if display_kpis else [])
+
+st.sidebar.markdown("### Date Range / Quick Select")
+today = pd.Timestamp.today().date()
+preset = st.sidebar.selectbox("Quick select", ["Custom","Past Week","Past Month","Past 3 Months","Past 6 Months","Past Year"])
+if preset == "Custom":
+    start_date, end_date = st.sidebar.date_input("Date range", [df["ckpi_statistics_date"].min().date(), df["ckpi_statistics_date"].max().date()])
+elif preset == "Past Week":
+    start_date, end_date = today - pd.Timedelta(days=7), today
+elif preset == "Past Month":
+    start_date, end_date = today - pd.Timedelta(days=30), today
+elif preset == "Past 3 Months":
+    start_date, end_date = today - pd.Timedelta(days=90), today
+elif preset == "Past 6 Months":
+    start_date, end_date = today - pd.Timedelta(days=180), today
+else:
+    start_date, end_date = today - pd.Timedelta(days=365), today
+
+# smart KPI weights UI: show sliders only for selected KPIs
+st.sidebar.markdown("### ⚖️ KPI Weights")
+selected_kpi_norms = [normalize_text(x) for x in selected_kpis]
+weights = {}
+if selected_kpi_norms:
+    base = 1.0 / len(selected_kpi_norms)
+    st.sidebar.caption("Adjust weights (relative importance). Values are normalized to sum=1.")
+    for k in selected_kpi_norms:
+        # display friendly name if present else the normalized key
+        label = next((x for x in display_kpis if normalize_text(x) == k), k)
+        weights[k] = st.sidebar.slider(label, 0.0, 1.0, float(base), 0.05)
+else:
+    # default balanced weights for all main KPIs
+    st.sidebar.caption("No KPI selected — using equal weights for all main KPIs.")
+    for k in MAIN_KPIS:
+        weights[k] = 1.0 / len(MAIN_KPIS)
+
+# normalize weights to sum 1
+total_w = sum(weights.values()) if sum(weights.values())>0 else 1.0
+for k in weights:
+    weights[k] = float(weights[k]) / float(total_w)
+
+# sensitivity slider for peak/low detection (if you keep that feature)
+sensitivity = st.sidebar.slider("Peak sensitivity (std factor)", 0.5, 3.0, 1.0, 0.1)
+
+# apply filters to dataframe
+mask = (
+    df["eq"].astype(str).isin(selected_eq) &
+    df["ckpi"].isin(selected_kpis) &
+    (df["ckpi_statistics_date"].dt.date >= pd.to_datetime(start_date)) &
+    (df["ckpi_statistics_date"].dt.date <= pd.to_datetime(end_date))
+)
+df_filtered = df[mask].copy()
+if df_filtered.empty:
+    st.warning("No data after applying filters.")
+    st.stop()
+
+# ---------------- Health Score calculation (stable approach) ----------------
+st.header("🩺 Equipment Health Summary")
+
+# compute per eq-per-kpi stats
+stats = (
+    df_filtered.groupby(["eq","_ckpi_norm","ckpi"])
+    .agg(avg_ave=("ave","mean"), std_ave=("ave","std"), cnt=("ave","count"))
     .reset_index()
 )
-scores["norm_std"] = scores["std_ave"] / (scores["std_ave"].max() + 1e-9)
-scores["HealthScore"] = (100 - scores["norm_std"] * 100).round(2)
-scores["_ckpi_norm"] = scores["ckpi"].astype(str).apply(lambda s: "".join(ch for ch in s.lower() if ch.isalnum()))
-scores["Weight"] = scores["_ckpi_norm"].map(weights).fillna(0.5)
-scores["WeightedScore"] = (scores["HealthScore"] * scores["Weight"]).round(2)
 
+# normalize std within file
+max_std = stats["std_ave"].max() if not np.isnan(stats["std_ave"].max()) else 0.0
+stats["norm_std"] = stats["std_ave"] / (max_std + 1e-9)
+# base health per KPI (100 best, 0 worst)
+stats["HealthScoreKPI"] = (100 - stats["norm_std"] * 100).clip(0,100).round(2)
+
+# map weights (use normalized _ckpi_norm keys)
+stats["_ckpi_norm"] = stats["_ckpi_norm"].astype(str)
+stats["Weight"] = stats["_ckpi_norm"].map(weights).fillna(0.0)
+# aggregated weighted health per equipment
 eq_health = (
-    scores.groupby("eq")["WeightedScore"]
-    .mean()
-    .reset_index()
-    .rename(columns={"WeightedScore": "HealthScore"})
+    stats.groupby("eq").apply(lambda g: np.average(g["HealthScoreKPI"], weights=g["Weight"]) if g["Weight"].sum()>0 else g["HealthScoreKPI"].mean())
+    .reset_index(name="HealthScore")
 )
+eq_health["HealthScore"] = eq_health["HealthScore"].fillna(0).round(2)
+
+# HealthStatus (safe)
 eq_health["HealthScore"] = pd.to_numeric(eq_health["HealthScore"], errors="coerce").fillna(0)
-if not eq_health.empty:
-    eq_health["HealthStatus"] = np.select(
-        [
-            eq_health["HealthScore"] >= 85,
-            (eq_health["HealthScore"] >= 70) & (eq_health["HealthScore"] < 85),
-            eq_health["HealthScore"] < 70
-        ],
-        ["✅ Excellent", "🟡 Needs Monitoring", "🔴 Critical"],
-        default="⚙️ Unknown"
-    )
+conds = [
+    eq_health["HealthScore"] >= 85,
+    (eq_health["HealthScore"] >= 70) & (eq_health["HealthScore"] < 85),
+    eq_health["HealthScore"] < 70
+]
+choices = ["✅ Excellent","🟡 Needs Monitoring","🔴 Critical"]
+eq_health["HealthStatus"] = np.select(conds, choices, default="⚙️ Unknown")
 
-st.dataframe(eq_health)
+# make eq string to avoid scientific axis labels
+eq_health["eq"] = eq_health["eq"].astype(str)
 
-# --- Health Bar Chart ---
-fig_bar = go.Figure()
-for _, row in eq_health.iterrows():
-    color = "green" if "Excellent" in row["HealthStatus"] else "orange" if "Needs" in row["HealthStatus"] else "red"
-    fig_bar.add_trace(go.Bar(
-        x=[row["eq"]],
-        y=[row["HealthScore"]],
-        marker_color=color,
-        hovertext=row["HealthStatus"]
-    ))
-fig_bar.update_layout(
-    xaxis_title="Equipment",
-    yaxis_title="Health Score",
-    yaxis=dict(range=[0, 100]),
-    height=450,
-    plot_bgcolor="white"
-)
-st.plotly_chart(fig_bar, use_container_width=True)
+# show summary top area
+st.subheader("Health scores (per EQ)")
+st.dataframe(eq_health.sort_values("HealthScore", ascending=False).reset_index(drop=True))
 
-# ---------------- FORECAST SECTION ----------------
+# show KPI-weight contribution heatmap table (colored)
+st.subheader("KPI contribution (weighted per EQ)")
+pivot = stats.pivot_table(index="eq", columns="ckpi", values="HealthScoreKPI", aggfunc=np.mean).fillna(0)
+# multiply columns by weights to visualize contribution
+for col in pivot.columns:
+    pivot[col] = pivot[col] * weights.get(normalize_text(col), 0.0)
+st.dataframe(pivot.style.background_gradient(cmap="RdYlGn", axis=None).format("{:.2f}"))
+
+# bar chart of current health
+fig = go.Figure()
+fig.add_trace(go.Bar(
+    x=eq_health["eq"],
+    y=eq_health["HealthScore"],
+    marker_color=[ "green" if s>=85 else "orange" if s>=70 else "red" for s in eq_health["HealthScore"]],
+    text=eq_health["HealthScore"],
+    textposition="auto",
+    hovertemplate="EQ: %{x}<br>HealthScore: %{y}<extra></extra>"
+))
+fig.update_layout(xaxis_title="Equipment", yaxis_title="Health Score (0-100)", height=450, template="plotly_white")
+st.plotly_chart(fig, use_container_width=True)
+
+# ---------------- Forecast section (Prophet) ----------------
 st.markdown("---")
-st.subheader("📈 Predictive Maintenance — KPI Failure Forecast")
+st.header("📈 Forecast & Failure Prediction (per KPI)")
 
 if not PROPHET_AVAILABLE:
-    st.warning("⚠️ Prophet not installed. Run `pip install prophet` to enable forecasting.")
+    st.warning("Prophet not installed in environment. Forecasting disabled. Install via `pip install prophet`.")
 else:
-    kpi_list = sorted(df_filtered["ckpi"].dropna().unique())
-    kpi_selected = st.selectbox("Select KPI for Forecast", kpi_list)
-    df_kpi = df_filtered[df_filtered["ckpi"] == kpi_selected][["ckpi_statistics_date", "ave"]].rename(
-        columns={"ckpi_statistics_date": "ds", "ave": "y"}
-    )
+    # KPI selector for forecast (only those present after filters)
+    available_kpis = sorted(df_filtered["ckpi"].unique())
+    sel_kpi = st.selectbox("Select KPI to forecast", available_kpis)
 
-    if len(df_kpi) >= 10:
-        from prophet import Prophet
-        KPI_THRESHOLDS = {
-            "doorfriction": (30.0, 50.0),
-            "cumulativedoorspeederror": (0.05, 0.08),
-            "lockhookclosingtime": (0.2, 0.6),
-            "lockhooktime": (0.3, None),
-            "maximumforceduringcompress": (5.0, 28.0),
-            "landingdoorlockrollerclearance": (None, 0.029)
-        }
-        low_thresh, high_thresh = KPI_THRESHOLDS.get(kpi_selected.lower(), (None, None))
-
-        period_days = st.slider("🔮 Forecast Period (days)", 30, 730, 365, step=30)
+    df_kpi = df_filtered[df_filtered["ckpi"] == sel_kpi][["ckpi_statistics_date","ave","eq","floor"]].rename(columns={"ckpi_statistics_date":"ds","ave":"y"})
+    # require per-eq forecasting; allow selection of eq to forecast
+    eqs_for_kpi = sorted(df_kpi["eq"].astype(str).unique())
+    sel_eq_for_forecast = st.selectbox("Select EQ for forecasting (per KPI)", eqs_for_kpi)
+    df_kpi_eq = df_kpi[df_kpi["eq"].astype(str) == str(sel_eq_for_forecast)].sort_values("ds")
+    if len(df_kpi_eq) < 10:
+        st.info("Not enough points for reliable Prophet forecast (>=10 recommended). Select another EQ or KPI or widen date range.")
+    else:
+        # thresholds: try to use KPI_REFERENCE mapping if present
+        k_norm = normalize_text(sel_kpi)
+        # attempt to parse high/low numerics from KPI_REFERENCE strings if possible (best-effort)
+        low_thresh = None
+        high_thresh = None
+        # If your KPI threshold dict (original) exists, you could map numeric; here we try simple parse
+        # Build Prophet model
+        period_days = st.slider("Forecast horizon (days)", 30, 730, 365, step=30)
         m = Prophet(yearly_seasonality=True, weekly_seasonality=True, daily_seasonality=False)
-        m.fit(df_kpi)
-        future = m.make_future_dataframe(periods=period_days)
-        forecast = m.predict(future)
+        with st.spinner("Fitting forecast model..."):
+            m.fit(df_kpi_eq[["ds","y"]])
+            future = m.make_future_dataframe(periods=period_days)
+            forecast = m.predict(future)
 
-        predicted_failure_date = None
-        if high_thresh is not None:
-            exceed = forecast[forecast["yhat"] > high_thresh]
-            if not exceed.empty:
-                predicted_failure_date = exceed.iloc[0]["ds"].date()
-        elif low_thresh is not None:
-            drop = forecast[forecast["yhat"] < low_thresh]
-            if not drop.empty:
-                predicted_failure_date = drop.iloc[0]["ds"].date()
-
-        # Forecast Plot
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=df_kpi["ds"], y=df_kpi["y"],
-            name="Actual", mode="lines+markers",
-            line=dict(color="#0071B9", width=2)
-        ))
-        fig.add_trace(go.Scatter(
-            x=forecast["ds"], y=forecast["yhat"],
-            name="Forecast", mode="lines", line=dict(color="#00B5E2", width=3)
-        ))
-        fig.add_trace(go.Scatter(
+        # find predicted exceed / drop using best-effort thresholds if provided in KPI_REFERENCE (non-numeric strings ignored)
+        # visualize
+        figf = go.Figure()
+        figf.add_trace(go.Scatter(x=df_kpi_eq["ds"], y=df_kpi_eq["y"], name="Actual", mode="lines+markers"))
+        figf.add_trace(go.Scatter(x=forecast["ds"], y=forecast["yhat"], name="Forecast", mode="lines", line=dict(width=3)))
+        figf.add_trace(go.Scatter(
             x=pd.concat([forecast["ds"], forecast["ds"][::-1]]),
             y=pd.concat([forecast["yhat_upper"], forecast["yhat_lower"][::-1]]),
-            fill="toself", fillcolor="rgba(0,113,185,0.15)",
-            line=dict(color="rgba(255,255,255,0)"),
-            hoverinfo="skip", showlegend=False
+            fill="toself", fillcolor="rgba(0,113,185,0.12)", line=dict(color="rgba(255,255,255,0)"), hoverinfo="skip", showlegend=False
         ))
+        figf.update_layout(title=f"Forecast for KPI: {sel_kpi} · EQ: {sel_eq_for_forecast}", xaxis_title="Date", yaxis_title="ave", height=600, template="plotly_white")
+        st.plotly_chart(figf, use_container_width=True)
 
-        if high_thresh:
-            fig.add_hline(y=high_thresh, line_dash="dot", line_color="red", annotation_text="High Threshold")
-        if low_thresh:
-            fig.add_hline(y=low_thresh, line_dash="dot", line_color="orange", annotation_text="Low Threshold")
+        # detect earliest breach if thresholds are numeric (we did not parse; leave for future enhancement)
+        st.markdown("**Forecast table (downloadable)**")
+        st.download_button("Download forecast CSV", data=forecast[["ds","yhat","yhat_lower","yhat_upper"]].to_csv(index=False).encode(), file_name=f"forecast_{normalize_text(sel_kpi)}_{sel_eq_for_forecast}.csv")
 
-        if predicted_failure_date:
-            fail_y = forecast.loc[forecast["ds"].dt.date == predicted_failure_date, "yhat"].values[0]
-            fig.add_trace(go.Scatter(
-                x=[predicted_failure_date],
-                y=[fail_y],
-                mode="markers+text",
-                text=["⚠️ Predicted Fault"],
-                textposition="bottom center",
-                marker=dict(color="red", size=14, symbol="x"),
-                name="Predicted Fault"
-            ))
+# ---------------- AI summary (Ollama) ----------------
+st.markdown("---")
+st.header("🤖 AI Summary (optional, local Ollama)")
 
-        fig.update_layout(
-            title=f"Forecast for {kpi_selected}",
-            xaxis_title="Date",
-            yaxis_title="Average (ave)",
-            hovermode="x unified",
-            height=600,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            template="plotly_white"
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-        # Summary
-        st.markdown("### 📅 Forecast Summary")
-        if predicted_failure_date:
-            days_remaining = (predicted_failure_date - pd.Timestamp.today().date()).days
-            st.success(f"⚠️ **Predicted Failure Date:** {predicted_failure_date}  \n"
-                       f"⏳ Estimated Remaining Life: **{days_remaining} days (~{days_remaining/365:.1f} years)**")
+def run_ollama_summary(text, model="llama3"):
+    ollama_path = shutil_which_ollama()
+    if not ollama_path:
+        return None, "ollama_not_found"
+    prompt = f"Summarize this equipment health report in 3 concise bullet points for a maintenance manager:\n\n{text}"
+    try:
+        cmd = f"\"{ollama_path}\" run {model} \"{prompt}\""
+        proc = subprocess.run(shlex.split(cmd), capture_output=True, text=True, timeout=60)
+        if proc.returncode == 0:
+            return proc.stdout.strip(), None
         else:
-            st.info("✅ No predicted failure within forecast period.")
+            return None, proc.stderr.strip()
+    except Exception as e:
+        return None, str(e)
+
+def shutil_which_ollama():
+    import shutil, os
+    # first try PATH
+    p = shutil.which("ollama")
+    if p: return p
+    # check common windows path for local dev (adjust username if needed)
+    possible = [
+        os.path.expanduser(r"~\AppData\Local\Programs\Ollama\ollama.exe"),
+        "/usr/local/bin/ollama",
+        "/opt/homebrew/bin/ollama",
+    ]
+    for pp in possible:
+        if os.path.exists(pp):
+            return pp
+    return None
+
+# small dataset summary for AI
+summary_df = eq_health.copy()
+if not summary_df.empty:
+    csv_text = summary_df.to_csv(index=False)
+    ollama_path = shutil_which_ollama()
+    if not ollama_path:
+        st.info("Ollama not found on host. Install Ollama and ensure `ollama serve` is running to enable local AI summaries.")
     else:
-        st.warning("Not enough data for forecasting. At least 10 points required.")
+        st.info("Ollama found. Running local summary (may take a few seconds)...")
+        summary_text, err = run_ollama_summary(csv_text, model="llama3")
+        if summary_text:
+            st.markdown("**AI Insights:**")
+            st.write(summary_text)
+        else:
+            st.info("Ollama returned no summary or error; check logs. Error: " + (err or "unknown"))
 
-# --- Download ---
-def df_to_excel_bytes(df_):
-    out = BytesIO()
-    with pd.ExcelWriter(out, engine="openpyxl") as writer:
-        df_.to_excel(writer, index=False, sheet_name="Health_Score")
-    out.seek(0)
-    return out
+# ---------------- Download combined report ----------------
+st.markdown("---")
+st.subheader("📥 Export")
+st.download_button("Download Health (Excel)", data=df_to_excel_bytes(eq_health), file_name="equipment_health.xlsx")
+st.download_button("Download Stats (Excel)", data=df_to_excel_bytes(stats), file_name="kpi_stats.xlsx")
 
-st.download_button("📥 Download Full Health Report (Excel)",
-                   data=df_to_excel_bytes(eq_health),
-                   file_name="Equipment_Health_Score.xlsx")
-
+st.caption("© Your Project — Equipment Health & Forecast Portal")
 st.caption("© 2025 KONE Internal Analytics | Developed by PRANAV VIKRAMAN S S")
