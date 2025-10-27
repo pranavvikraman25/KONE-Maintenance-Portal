@@ -203,12 +203,16 @@ for k in weights:
 sensitivity = st.sidebar.slider("Peak sensitivity (std factor)", 0.5, 3.0, 1.0, 0.1)
 
 # apply filters to dataframe
+start_date = pd.to_datetime(start_date).date()
+end_date = pd.to_datetime(end_date).date()
+
 mask = (
     df["eq"].astype(str).isin(selected_eq) &
     df["ckpi"].isin(selected_kpis) &
-    (df["ckpi_statistics_date"].dt.date >= pd.to_datetime(start_date)) &
-    (df["ckpi_statistics_date"].dt.date <= pd.to_datetime(end_date))
+    (df["ckpi_statistics_date"].dt.date >= start_date) &
+    (df["ckpi_statistics_date"].dt.date <= end_date)
 )
+
 df_filtered = df[mask].copy()
 if df_filtered.empty:
     st.warning("No data after applying filters.")
