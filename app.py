@@ -57,6 +57,12 @@ with col1:
     Generates readable Word reports from cloud telemetry for documentation.
     """)
 
+    st.markdown("""
+    **4️⃣ AI Chatbot (Anomaly Q&A)**  
+    Interact with your KPI dataset using **Llama 3 (via Ollama)**.  
+    Ask questions like “Which EQ had most peaks last week?”
+    """)
+
 with col2:
     
     st.markdown("""
@@ -75,11 +81,7 @@ with col2:
     Browse and download generated reports by date or equipment ID.
     """)
     
-     st.markdown("""
-    **4️⃣ AI Chatbot (Anomaly Q&A)**  
-    Interact with your KPI dataset using **Llama 3 (via Ollama)**.  
-    Ask questions like “Which EQ had most peaks last week?”
-    """)
+
 st.markdown("---")
 st.markdown("### 📘 How to Use")
 st.markdown("""
@@ -91,6 +93,7 @@ st.markdown("""
 
 st.markdown("---")
 st.caption("© 2025 KONE Digital Maintenance | Developed by PRANAV VIKRAMAN S S")
+
 
 
 
