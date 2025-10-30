@@ -161,21 +161,46 @@ selected_eq = st.sidebar.multiselect("Select EQ(s)", eq_choices, default=eq_choi
 display_kpis = sorted(df["ckpi"].dropna().unique())
 selected_kpis = st.sidebar.multiselect("Select KPI(s)", display_kpis, default=display_kpis[:6] if display_kpis else [])
 
-st.sidebar.markdown("### Date Range / Quick Select")
-today = pd.Timestamp.today().date()
-preset = st.sidebar.selectbox("Quick select", ["Custom","Past Week","Past Month","Past 3 Months","Past 6 Months","Past Year"])
-if preset == "Custom":
-    start_date, end_date = st.sidebar.date_input("Date range", [df["ckpi_statistics_date"].min().date(), df["ckpi_statistics_date"].max().date()])
-elif preset == "Past Week":
-    start_date, end_date = today - pd.Timedelta(days=7), today
-elif preset == "Past Month":
-    start_date, end_date = today - pd.Timedelta(days=30), today
-elif preset == "Past 3 Months":
-    start_date, end_date = today - pd.Timedelta(days=90), today
-elif preset == "Past 6 Months":
-    start_date, end_date = today - pd.Timedelta(days=180), today
-else:
-    start_date, end_date = today - pd.Timedelta(days=365), today
+
+
+#-------------------------date filter -----------------------------------------
+
+
+
+# --- Date Range Filter ---
+st.sidebar.markdown("### Date Range")
+
+preset_range = st.sidebar.selectbox(
+    "Quick Select",
+    ["Custom", "Past Week", "Past Month", "Past 3 Months", "Past 6 Months", "Past Year"]
+)
+
+# Use the last date in the uploaded file instead of today
+latest_date = df[date_col].max().date()
+earliest_date = df[date_col].min().date()
+
+if preset_range == "Custom":
+    start_date, end_date = st.sidebar.date_input(
+        "Select Date Range", [earliest_date, latest_date]
+    )
+elif preset_range == "Past Week":
+    start_date, end_date = latest_date - timedelta(days=7), latest_date
+elif preset_range == "Past Month":
+    start_date, end_date = latest_date - timedelta(days=30), latest_date
+elif preset_range == "Past 3 Months":
+    start_date, end_date = latest_date - timedelta(days=90), latest_date
+elif preset_range == "Past 6 Months":
+    start_date, end_date = latest_date - timedelta(days=180), latest_date
+else:  # Past Year
+    start_date, end_date = latest_date - timedelta(days=365), latest_date
+
+
+std_factor = st.sidebar.slider("Peak/Low Sensitivity", 0.5, 3.0, 1.0, 0.1)
+
+
+
+
+#-------------------------date filter -----------------------------------------
 
 # smart KPI weights UI: show sliders only for selected KPIs
 st.sidebar.markdown("### ⚖️ KPI Weights")
