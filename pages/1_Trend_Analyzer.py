@@ -32,16 +32,7 @@ st.set_page_config(page_title="CKPI Multi-KPI Analyzer", layout="wide")
 
 #------------------------33 to 41 new code added----------------------------------------------------------------------
 
-# Load shared CSS
-def load_kone_style():
-    with open("assets/kone_style.css") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-load_kone_style()
-
 st.title("Trend Analysis for Different Equipments")
-
-
 
 # ---------------- Load Custom CSS (KONE Theme) ----------------
 def load_css(file_name):
