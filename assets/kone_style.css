@@ -1,84 +1,117 @@
-/* === SIDEBAR STYLING === */
+/* =========================
+   KONE Clean Sidebar Theme
+   (compact, readable, neutral)
+   ========================= */
 
-html[data-theme="light"] [data-testid="stSidebar"] label {
-    color: #000000 !important;
-}
-html[data-theme="dark"] [data-testid="stSidebar"] label {
-    color: #ffffff !important;
-}
-
-
+/* Sidebar overall: light, neutral */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #003087 0%, #0048AA 100%);
-    color: white !important;
-    padding: 1rem 1rem;
+  background: #f6f7f9 !important;
+  color: #222 !important;
+  padding: 18px 14px !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
 }
 
-/* Sidebar Header (KONE — Maintenance Dashboard) */
-[data-testid="stSidebar"] h1,
+/* App title (KONE — Maintenance Dashboard) */
+[data-testid="stSidebar"] .css-1d391kg { /* container header class may vary; safe selector below */
+  color: #003087 !important;
+  font-weight: 700 !important;
+  font-size: 18px !important;
+  margin-bottom: 12px !important;
+}
+
+/* Strong section headers like "Global Filters" / "Filters" */
 [data-testid="stSidebar"] h2,
 [data-testid="stSidebar"] h3,
-[data-testid="stSidebar"] h4 {
-    color: white !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.5px;
+[data-testid="stSidebar"] .stMarkdown h2,
+[data-testid="stSidebar"] .stMarkdown h3 {
+  color: #003087 !important;
+  font-weight: 700 !important;
+  margin-top: 12px !important;
+  margin-bottom: 8px !important;
+  font-size: 14px !important;
 }
 
-/* Sidebar section headings (like “Global Filters”) */
-section[data-testid="stSidebar"] > div h2 {
-    color: #FFFFFF !important;
-    font-weight: 700;
-    font-size: 1.1rem;
-    margin-top: 1.2rem;
+/* Input label text (Quick Select, Select Date Range) - darker and compact */
+[data-testid="stSidebar"] label, 
+[data-testid="stSidebar"] .stText, 
+[data-testid="stSidebar"] .stTextInput > label {
+  color: #222 !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  margin-bottom: 6px !important;
 }
 
-/* Sub-labels and input descriptions (like “Quick Select”, “Date Range”) */
-[data-testid="stSidebar"] label {
-    color: #111 !important;
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-/* Dropdowns, text boxes, and multi-select boxes */
-[data-testid="stSidebar"] .stSelectbox,
+/* Control containers (the white boxes around selects/multiselects/date inputs) */
+[data-testid="stSidebar"] .css-1cpxqw2, /* generic form container */
+[data-testid="stSidebar"] .stSelectbox, 
 [data-testid="stSidebar"] .stMultiSelect,
 [data-testid="stSidebar"] .stDateInput,
-[data-testid="stSidebar"] .stSlider {
-    background-color: #ffffff !important;
-    color: #000000 !important;
-    border-radius: 8px;
-    border: none;
+[data-testid="stSidebar"] .stTextInput {
+  background: #ffffff !important;
+  border-radius: 8px !important;
+  padding: 8px 10px !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  color: #111 !important;
+  box-shadow: none !important;
 }
 
-/* Multiselect chosen tag colors */
+/* Multiselect tags (small, compact, consistent) */
 [data-baseweb="tag"] {
-    background-color: #ff4b4b !important;  /* Red tags for clarity */
-    color: white !important;
-    font-weight: 600;
+  background-color: #ff6b6b !important; /* soft red */
+  color: white !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  padding: 3px 8px !important;
+  margin: 2px !important;
+  line-height: 1.1 !important;
+  height: auto !important;
 }
 
-/* Sidebar text and info messages */
-[data-testid="stSidebar"] p,
-[data-testid="stSidebar"] span {
-    color: #e8e8e8 !important;
-    font-size: 0.85rem;
+/* Dropdown chevron and clear icon alignment */
+[data-testid="stSidebar"] svg {
+  fill: #666 !important;
 }
 
-/* Sidebar Scrollbar Styling */
-[data-testid="stSidebar"] ::-webkit-scrollbar {
-    width: 6px;
-}
-[data-testid="stSidebar"] ::-webkit-scrollbar-thumb {
-    background-color: rgba(255,255,255,0.4);
-    border-radius: 10px;
-}
-[data-testid="stSidebar"] ::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255,255,255,0.6);
+/* Date range display compact */
+[data-testid="stSidebar"] .stDateInput > div, 
+[data-testid="stSidebar"] .stSlider {
+  padding: 6px 8px !important;
 }
 
-/* Sidebar logo (if used) */
-[data-testid="stSidebar"] img {
-    display: block;
-    margin: 15px auto;
-    width: 130px;
+/* Slider handle and track - subtle */
+[data-testid="stSidebar"] .rc-slider {
+  margin: 6px 0 !important;
 }
+
+/* Reduce huge gaps — make block spacing compact */
+[data-testid="stSidebar"] .block-container .css-1v0mbdj {
+  margin-bottom: 8px !important;
+}
+
+/* Make control text inside input smaller and darker */
+[data-testid="stSidebar"] .stSelectbox .css-1kyxreq, 
+[data-testid="stSidebar"] .stMultiSelect .css-1kyxreq,
+[data-testid="stSidebar"] .stTextInput .css-1kyxreq {
+  color: #111 !important;
+  font-size: 13px !important;
+}
+
+/* scrollbar for sidebar */
+[data-testid="stSidebar"] ::-webkit-scrollbar { width: 6px; }
+[data-testid="stSidebar"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 10px; }
+
+/* make placeholder text lighter but readable */
+[data-testid="stSidebar"] ::placeholder { color: #9aa0a6 !important; }
+
+/* small utility: reduce the size of the 'x' remove icon on tags */
+[data-testid="stSidebar"] button[aria-label="Clear"] {
+  width: 18px !important;
+  height: 18px !important;
+  padding: 0 !important;
+}
+
+/* Slight margin inside the sidebar sections to separate blocks nicely */
+[data-testid="stSidebar"] .stMarkdown { margin-bottom: 6px !important; }
+
+/* Keep fonts consistent */
+body, input, select, textarea { font-family: "Segoe UI", Roboto, Arial, sans-serif !important; }
