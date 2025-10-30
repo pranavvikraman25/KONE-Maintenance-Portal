@@ -79,14 +79,14 @@ body {
 # ---------- Hero Section ----------
 st.markdown("""
 <div class="hero">
-    <h1>🚀 KONE Predictive Maintenance Portal</h1>
+    <h1> KONE Predictive Maintenance Portal</h1>
     <p>Welcome to KONE’s centralized AI-driven maintenance dashboard — designed to empower engineering analytics and field maintenance teams.<br>
     Gain insights, analyze performance, and generate professional reports all in one unified platform.</p>
 </div>
 """, unsafe_allow_html=True)
 
 # ---------- Available Modules Section ----------
-st.markdown("### 🔧 Available Modules")
+st.markdown("### >>> Available Modules")
 
 cols = st.columns(3)
 with cols[0]:
@@ -149,3 +149,4 @@ st.markdown("""
     © 2025 KONE Digital Maintenance | Developed with ❤️ by <b>PRANAV VIKRAMAN S S</b>
 </div>
 """, unsafe_allow_html=True)
+
