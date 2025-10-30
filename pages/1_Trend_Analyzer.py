@@ -7,9 +7,6 @@ import subprocess, shlex
 import os
 from backend.backend_utils import save_uploaded_file, get_uploaded_file, clear_uploaded_file
 from io import BytesIO
-from theme import kone_ui
-kone_ui()
-
 
 UPLOAD_DIR = "backend/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
