@@ -7,6 +7,8 @@ import subprocess, shlex
 import os
 from backend.backend_utils import save_uploaded_file, get_uploaded_file, clear_uploaded_file
 from io import BytesIO
+from backend.report_utils import save_report  # make sure this import is at the top of your file
+import os
 
 UPLOAD_DIR = "backend/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -377,11 +379,36 @@ for rec in kpi_summary:
         })
 
 
+#-------------------------------edited------------------------------------
+
 report_df = pd.DataFrame(report_rows)
+
 if not report_df.empty:
     st.dataframe(report_df)
-    st.download_button(
-        "Download Actionable Report (Excel)",
-        data=df_to_excel_bytes(report_df),
-        file_name="kpi_actionable_report.xlsx"
+
+    # Generate Excel bytes
+    report_bytes = df_to_excel_bytes(report_df)
+
+    # Optional: label based on the currently selected date range (preset)
+    filter_label = preset_range.replace(" ", "_") if "preset_range" in locals() else "Custom"
+
+    # Save the file automatically into backend/reports/Trend_Analyzer/
+    saved_path = save_report(
+        report_bytes.getvalue() if hasattr(report_bytes, "getvalue") else report_bytes,
+        module_name="Trend_Analyzer",
+        filter_label=filter_label,
+        extension="xlsx"
     )
+
+    # Normal download button
+    st.download_button(
+        "⬇️ Download Actionable Report (Excel)",
+        data=report_bytes,
+        file_name=os.path.basename(saved_path)
+    )
+
+    # Confirmation message
+    st.success(f"✅ Report auto-saved to archive: `{os.path.basename(saved_path)}`")
+
+else:
+    st.info("No action needed for selected filters.")
