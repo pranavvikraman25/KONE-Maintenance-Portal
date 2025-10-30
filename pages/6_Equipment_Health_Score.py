@@ -198,12 +198,6 @@ else:  # Past Year
 st.sidebar.markdown(f"**🕒 Reference period:** up to {latest_date.strftime('%d-%b-%Y')}")
 
 
-
-std_factor = st.sidebar.slider("Peak/Low Sensitivity", 0.5, 3.0, 1.0, 0.1)
-
-
-
-
 #-------------------------date filter -----------------------------------------
 
 # smart KPI weights UI: show sliders only for selected KPIs
