@@ -1,35 +1,34 @@
+# pages/8_Report_Archive.py
 import streamlit as st
 import os
-import pandas as pd
+from backend.report_utils import list_all_reports
 
-UPLOAD_DIR = "backend/uploads"
-files = os.listdir(UPLOAD_DIR)
+st.title("📁 Report Archive")
+st.markdown("All reports saved by modules (Trend_Analyzer, JSON_to_Excel, etc.).")
 
-st.title("📂 Report Archive")
-if not files:
-    st.info("No reports or uploads yet.")
-else:
-    for f in files:
-        st.download_button(label=f"Download {f}", data=open(os.path.join(UPLOAD_DIR, f), "rb"), file_name=f)
+reports = list_all_reports()
 
-st.markdown("""
-This section lists all available reports from the `/reports` folder  
-and lets you download them directly.
-""")
-
-REPORT_PATH = "reports"
-if not os.path.exists(REPORT_PATH):
-    os.makedirs(REPORT_PATH)
-
-files = [f for f in os.listdir(REPORT_PATH) if f.endswith((".xlsx",".csv",".docx",".pdf"))]
-if not files:
+if not reports:
     st.info("No reports found yet.")
-    st.stop()
+else:
+    # group by module folder
+    grouped = {}
+    for path in reports:
+        module = os.path.basename(os.path.dirname(path))
+        grouped.setdefault(module, []).append(path)
 
-for f in files:
-    path = os.path.join(REPORT_PATH, f)
-    st.download_button(
-        label=f"📄 Download {f}",
-        data=open(path, "rb").read(),
-        file_name=f
-    )
+    # optional search/filter input
+    query = st.text_input("Search reports (filename, module, filter label)", value="")
+    for module, files in grouped.items():
+        st.markdown(f"### 🧩 {module}")
+        for report_path in files:
+            file_name = os.path.basename(report_path)
+            if query and query.lower() not in file_name.lower() and query.lower() not in module.lower():
+                continue
+            ext = os.path.splitext(file_name)[1].lower()
+            icon = "📊" if ext == ".xlsx" else "📄" if ext in [".docx", ".doc"] else "🧾"
+            with open(report_path, "rb") as f:
+                data = f.read()
+            st.download_button(label=f"{icon} {file_name}", data=data, file_name=file_name, key=report_path)
+        st.markdown("---")
+    st.success(f"Total reports: {len(reports)}")
