@@ -146,7 +146,11 @@ st.markdown("""
 # ---------- Footer ----------
 st.markdown("""
 <div class="footer">
-    © 2025 KONE Digital Maintenance | Developed with ❤️ by <b>PRANAV VIKRAMAN S S</b>
+    © 2025 KONE Digital Maintenance | Developed with ❤️ by 
+    <a href="https://www.linkedin.com/in/pranav-vikraman-322020242/" target="_blank" style="color:#003087; text-decoration:none; font-weight:bold;">
+        PRANAV VIKRAMAN S S
+    </a>
 </div>
 """, unsafe_allow_html=True)
+
 
