@@ -1,97 +1,151 @@
-# app.py
 import streamlit as st
 
-# --- Page Setup ---
-st.set_page_config(
-    page_title="KONE Maintenance Portal",
-    layout="wide",
-    page_icon="🧭"
-)
+st.set_page_config(page_title="KONE Predictive Maintenance Portal", layout="wide")
 
-# --- Load CSS ---
-def load_css(file_name):
-    with open(file_name) as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-load_css("assets/style.css")
-
-# --- Sidebar Branding ---
-with st.sidebar:
-    st.image("assets/logo.png", width=160)
-    st.markdown("### 🏢 KONE Maintenance Portal")
-    st.markdown("---")
-    st.write("Use the left sidebar to navigate across different modules of the portal.")
-    st.markdown("---")
-    st.markdown("#### 💡 About")
-    st.caption("This internal portal is designed to analyze KPI trends, detect anomalies, "
-               "and generate actionable insights for predictive maintenance.")
-
-# --- Main Page ---
-st.title("KONE Predictive Maintenance Portal")
+# ---------- Custom CSS ----------
 st.markdown("""
-Welcome to **KONE’s Centralized Maintenance Dashboard**,  
-a unified portal designed to support the **Engineering Analytics** and **Field Maintenance** teams.
+<style>
+/* Global Styles */
+body {
+    background-color: #f8f9fc;
+    font-family: "Segoe UI", Roboto, sans-serif;
+}
 
-This application combines all your KPI tools, analysis modules, and AI insights into one seamless platform.
-""")
+/* Sidebar Styling */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #003087 0%, #0048AA 100%);
+    color: white !important;
+}
+[data-testid="stSidebar"] * {
+    color: white !important;
+    font-weight: 500;
+}
+[data-testid="stSidebar"] img {
+    margin: 20px auto;
+    display: block;
+}
 
+/* Hero Header */
+.hero {
+    background: linear-gradient(90deg, #003087, #0048AA);
+    color: white;
+    padding: 2rem 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+}
+.hero h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+.hero p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+/* Card Container */
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+.card h3 {
+    color: #003087;
+    margin-bottom: 0.5rem;
+}
+.card p {
+    color: #333;
+    font-size: 0.95rem;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    margin-top: 3rem;
+    padding: 1rem 0;
+    color: #888;
+    font-size: 0.85rem;
+    border-top: 1px solid #ddd;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------- Hero Section ----------
+st.markdown("""
+<div class="hero">
+    <h1>🚀 KONE Predictive Maintenance Portal</h1>
+    <p>Welcome to KONE’s centralized AI-driven maintenance dashboard — designed to empower engineering analytics and field maintenance teams.<br>
+    Gain insights, analyze performance, and generate professional reports all in one unified platform.</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ---------- Available Modules Section ----------
 st.markdown("### 🔧 Available Modules")
 
-col1, col2 = st.columns(2)
-
-with col1:
+cols = st.columns(3)
+with cols[0]:
     st.markdown("""
-    **1️⃣ Trend Analyzer**  
-    Visualize CKPI patterns and detect anomalies across elevators.  
-    Tracks performance using thresholds and trend graphs.
-    """)
-
-    st.markdown("""
-    **2️⃣ JSON → Excel Converter**  
-    Converts raw KPI JSON into human-readable Excel files.  
-    Great for field engineers reviewing daily reports.
-    """)
+    <div class="card">
+        <h3>1️⃣ Trend Analyzer</h3>
+        <p>Visualize CKPI patterns, detect anomalies, and analyze elevator performance using thresholds and peaks.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("""
-    **3️⃣ Live Cloud Data → Word Report Generator**  
-    Generates readable Word reports from cloud telemetry for documentation.
-    """)
+    <div class="card">
+        <h3>2️⃣ JSON ➜ Excel Converter</h3>
+        <p>Convert raw KPI JSON files into structured Excel reports for technician-level readability.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-
-with col2:
-    
+with cols[1]:
     st.markdown("""
-    **4️⃣ Maintenance Tracker**  
-    Technicians can mark “Checked” / “Resolved” on issues from the Actionable Report.
-    """)
-
-    st.markdown("""
-    **5️⃣ Equipment Health Forecast**  
-    Compute weighted KPI health per EQ — identify which units need inspection first and Forecast upcoming failures using time-series AI models - Prophet
-    """)
+    <div class="card">
+        <h3>3️⃣ Word Report Generator</h3>
+        <p>Generate clean, formatted Word reports from live cloud data — perfect for inspection documentation.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("""
-    
-    **6️⃣ Report Archive**  
-    Browse and download generated reports by date or equipment ID.
-    """)
-    
+    <div class="card">
+        <h3>4️⃣ Maintenance Tracker</h3>
+        <p>Track maintenance checks, technician comments, and issue resolutions directly from actionable reports.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-st.markdown("---")
-st.markdown("### 📘 How to Use")
+with cols[2]:
+    st.markdown("""
+    <div class="card">
+        <h3>5️⃣ Equipment Health Forecast</h3>
+        <p>Forecast upcoming failures and evaluate unit health using time-series prediction models (Prophet, ARIMA).</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="card">
+        <h3>6️⃣ Report Archive</h3>
+        <p>Access and download previously generated reports — filtered by date, KPI, or equipment ID.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ---------- How To Use ----------
+st.markdown("### 🧭 How to Use")
 st.markdown("""
-1. Navigate using the left sidebar (each module opens in a new view).  
-2. Upload the relevant dataset or report in each page.  
-3. Use **filters, graphs, and AI insights** to analyze the results.  
-4. Download results or actionable reports for technician use.
+1. Use the sidebar to navigate between modules.  
+2. Upload your relevant dataset or JSON/Excel file.  
+3. Apply **filters, graphs, and AI modules** to analyze your data.  
+4. Download results or reports for your maintenance workflow.
 """)
 
-st.markdown("---")
-st.caption("© 2025 KONE Digital Maintenance | Developed by PRANAV VIKRAMAN S S")
-
-
-
-
-
-
-
+# ---------- Footer ----------
+st.markdown("""
+<div class="footer">
+    © 2025 KONE Digital Maintenance | Developed with ❤️ by <b>PRANAV VIKRAMAN S S</b>
+</div>
+""", unsafe_allow_html=True)
