@@ -41,12 +41,7 @@ load_kone_style()
 
 st.title("Trend Analysis for Different Equipments")
 
-st.markdown("""
-<div class="hero">
-    <h1>KPI Report Generator</h1>
-    <p>Filter, analyze, and export your KPI results for inspection documentation.</p>
-</div>
-""", unsafe_allow_html=True)
+
 
 # ---------------- Load Custom CSS (KONE Theme) ----------------
 def load_css(file_name):
