@@ -176,8 +176,8 @@ preset_range = st.sidebar.selectbox(
 )
 
 # Use the last date in the uploaded file instead of today
-latest_date = df[date_col].max().date()
-earliest_date = df[date_col].min().date()
+latest_date = df[date_col].max()
+earliest_date = df[date_col].min()
 
 if preset_range == "Custom":
     start_date, end_date = st.sidebar.date_input(
