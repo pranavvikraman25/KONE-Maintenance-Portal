@@ -1,0 +1,83 @@
+/* === GLOBAL STYLE === */
+body {
+    background-color: #f8f9fc;
+    font-family: "Segoe UI", Roboto, sans-serif;
+}
+
+/* === SIDEBAR === */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #003087 0%, #0048AA 100%);
+    color: white !important;
+}
+[data-testid="stSidebar"] * {
+    color: white !important;
+    font-weight: 500;
+}
+[data-testid="stSidebar"] img {
+    margin: 20px auto;
+    display: block;
+}
+
+/* === HEADER BOX / HERO === */
+.hero {
+    background: linear-gradient(90deg, #003087, #0048AA);
+    color: white;
+    padding: 1.5rem 2rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+}
+.hero h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+.hero p {
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+/* === CARDS === */
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.3rem 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+}
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+/* === BUTTONS === */
+div.stButton > button {
+    background-color: #003087;
+    color: white;
+    font-weight: 600;
+    border-radius: 6px;
+    border: none;
+    padding: 0.6rem 1.2rem;
+}
+div.stButton > button:hover {
+    background-color: #0048AA;
+    transform: scale(1.03);
+}
+
+/* === FOOTER === */
+.footer {
+    text-align: center;
+    margin-top: 3rem;
+    padding: 1rem 0;
+    color: #888;
+    font-size: 0.85rem;
+    border-top: 1px solid #ddd;
+}
+.footer a {
+    color: #003087;
+    text-decoration: none;
+    font-weight: bold;
+}
+.footer a:hover {
+    color: #007BFF;
+    text-decoration: underline;
+}
