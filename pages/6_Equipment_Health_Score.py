@@ -167,21 +167,22 @@ selected_kpis = st.sidebar.multiselect("Select KPI(s)", display_kpis, default=di
 
 
 
-# --- Date Range Filter ---
-st.sidebar.markdown("### Date Range")
+# --- Dynamic Date Range Handling ---
+# Always use the latest date in the dataset, not today's date
+date_series = pd.to_datetime(df["ckpi_statistics_date"], errors="coerce")
+latest_date = date_series.max().date() if not date_series.isna().all() else pd.Timestamp.today().date()
 
+# Define date presets based on latest date from file
 preset_range = st.sidebar.selectbox(
     "Quick Select",
     ["Custom", "Past Week", "Past Month", "Past 3 Months", "Past 6 Months", "Past Year"]
 )
 
-# Use the last date in the uploaded file instead of today
-latest_date = df[date_col].max()
-earliest_date = df[date_col].min()
-
 if preset_range == "Custom":
+    min_date = date_series.min().date() if not date_series.isna().all() else latest_date - timedelta(days=30)
     start_date, end_date = st.sidebar.date_input(
-        "Select Date Range", [earliest_date, latest_date]
+        "Select Custom Date Range",
+        [min_date, latest_date]
     )
 elif preset_range == "Past Week":
     start_date, end_date = latest_date - timedelta(days=7), latest_date
@@ -193,6 +194,9 @@ elif preset_range == "Past 6 Months":
     start_date, end_date = latest_date - timedelta(days=180), latest_date
 else:  # Past Year
     start_date, end_date = latest_date - timedelta(days=365), latest_date
+
+st.sidebar.markdown(f"**🕒 Reference period:** up to {latest_date.strftime('%d-%b-%Y')}")
+
 
 
 std_factor = st.sidebar.slider("Peak/Low Sensitivity", 0.5, 3.0, 1.0, 0.1)
