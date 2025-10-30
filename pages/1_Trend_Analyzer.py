@@ -401,9 +401,17 @@ if not report_df.empty:
         file_name="kpi_actionable_report.xlsx"
     )
     
-# ---------------- Footer ----------------
-st.markdown("---")
-st.caption("© 2025 KONE Internal Dashboard | Developed by PRANAV VIKRAMAN S S")
+
+#--------------- Footer ----------------
+st.markdown("""
+<div class="footer">
+    © 2025 KONE Digital Maintenance | Developed with ❤️ by 
+    <a href="https://www.linkedin.com/in/pranav-vikraman-322020242/" target="_blank">
+        PRANAV VIKRAMAN S S
+    </a>
+</div>
+""", unsafe_allow_html=True)
+
 
 
 
