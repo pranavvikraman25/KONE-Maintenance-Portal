@@ -9,6 +9,10 @@ from backend.backend_utils import save_uploaded_file, get_uploaded_file, clear_u
 from io import BytesIO
 from backend.report_utils import save_report  # make sure this import is at the top of your file
 import os
+from backend.report_utils import save_report, delete_report, list_all_reports
+import os
+
+
 
 UPLOAD_DIR = "backend/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
