@@ -380,35 +380,32 @@ for rec in kpi_summary:
 
 
 #-------------------------------edited------------------------------------
-
 report_df = pd.DataFrame(report_rows)
 
 if not report_df.empty:
     st.dataframe(report_df)
 
-    # Generate Excel bytes
     report_bytes = df_to_excel_bytes(report_df)
-
-    # Optional: label based on the currently selected date range (preset)
     filter_label = preset_range.replace(" ", "_") if "preset_range" in locals() else "Custom"
 
-    # Save the file automatically into backend/reports/Trend_Analyzer/
-    saved_path = save_report(
-        report_bytes.getvalue() if hasattr(report_bytes, "getvalue") else report_bytes,
-        module_name="Trend_Analyzer",
-        filter_label=filter_label,
-        extension="xlsx"
-    )
+    # ✅ Button triggers saving only once
+    if st.button("📊 Generate & Save Actionable Report", key="generate_report_btn"):
+        saved_path = save_report(
+            report_bytes.getvalue() if hasattr(report_bytes, "getvalue") else report_bytes,
+            module_name="Trend_Analyzer",
+            filter_label=filter_label,
+            extension="xlsx"
+        )
+        st.success(f"✅ Report saved to archive: `{os.path.basename(saved_path)}`")
 
-    # Normal download button
-    st.download_button(
-        "⬇️ Download Actionable Report (Excel)",
-        data=report_bytes,
-        file_name=os.path.basename(saved_path)
-    )
-
-    # Confirmation message
-    st.success(f"✅ Report auto-saved to archive: `{os.path.basename(saved_path)}`")
+        # Single download button (after save)
+        st.download_button(
+            "⬇️ Download Actionable Report (Excel)",
+            data=report_bytes,
+            file_name=os.path.basename(saved_path),
+            key="download_btn"
+        )
 
 else:
     st.info("No action needed for selected filters.")
+
