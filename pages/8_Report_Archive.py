@@ -19,19 +19,17 @@ else:
         module = os.path.basename(os.path.dirname(path))
         grouped.setdefault(module, []).append(path)
 
-    # Search box
+    # Search bar
     query = st.text_input("🔍 Search reports (by name or module):", value="").strip().lower()
-
-    deleted_any = False  # track refresh trigger
+    deleted_any = False
 
     for module, files in grouped.items():
-        # Filter by search
         visible_files = [f for f in files if query in os.path.basename(f).lower() or query in module.lower()]
         if not visible_files:
             continue
 
         st.markdown(f"## 🧩 {module}")
-        latest_files = sorted(visible_files, reverse=True)[:10]  # show latest 10 files
+        latest_files = sorted(visible_files, reverse=True)[:10]
 
         for report_path in latest_files:
             file_name = os.path.basename(report_path)
@@ -57,16 +55,13 @@ else:
                         deleted_any = True
                     else:
                         st.error(f"Failed to delete {file_name}")
-
         st.markdown("---")
 
-    # If any file was deleted, rerun to refresh the list
     if deleted_any:
         st.experimental_rerun()
 
     st.success(f"✅ Total saved reports: {len(reports)}")
 
-# Optional: add a "Clear All" button
 st.markdown("---")
 if st.button("🧹 Clear All Reports"):
     import shutil
