@@ -49,3 +49,13 @@ else:
         st.markdown("---")
 
     st.success(f"✅ Total saved reports: {len(reports)}")
+def delete_report(file_path):
+    """Delete a report file safely."""
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return True
+        return False
+    except Exception as e:
+        print(f"Error deleting {file_path}: {e}")
+        return False
