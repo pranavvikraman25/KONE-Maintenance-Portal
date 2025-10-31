@@ -1,34 +1,51 @@
-# pages/8_Report_Archive.py
 import streamlit as st
 import os
 from backend.report_utils import list_all_reports
 
 st.title("📁 Report Archive")
-st.markdown("All reports saved by modules (Trend_Analyzer, JSON_to_Excel, etc.).")
+
+st.markdown("""
+All reports saved by modules (Trend_Analyzer, JSON_to_Excel, Report_Generator, etc.)  
+Each section lists the latest reports for that module.
+""")
 
 reports = list_all_reports()
 
 if not reports:
     st.info("No reports found yet.")
 else:
-    # group by module folder
     grouped = {}
     for path in reports:
         module = os.path.basename(os.path.dirname(path))
         grouped.setdefault(module, []).append(path)
 
-    # optional search/filter input
-    query = st.text_input("Search reports (filename, module, filter label)", value="")
+    # Search box
+    query = st.text_input("🔍 Search reports (by name or module):", value="").strip().lower()
+
     for module, files in grouped.items():
-        st.markdown(f"### 🧩 {module}")
-        for report_path in files:
+        # Apply search filter
+        visible_files = [f for f in files if query in os.path.basename(f).lower() or query in module.lower()]
+        if not visible_files:
+            continue
+
+        st.markdown(f"## 🧩 {module}")
+        latest_files = sorted(visible_files, reverse=True)[:5]  # show latest 5 per module
+
+        for report_path in latest_files:
             file_name = os.path.basename(report_path)
-            if query and query.lower() not in file_name.lower() and query.lower() not in module.lower():
-                continue
             ext = os.path.splitext(file_name)[1].lower()
             icon = "📊" if ext == ".xlsx" else "📄" if ext in [".docx", ".doc"] else "🧾"
+
             with open(report_path, "rb") as f:
                 data = f.read()
-            st.download_button(label=f"{icon} {file_name}", data=data, file_name=file_name, key=report_path)
+
+            st.download_button(
+                label=f"{icon} {file_name}",
+                data=data,
+                file_name=file_name,
+                mime="application/octet-stream",
+                key=file_name
+            )
         st.markdown("---")
-    st.success(f"Total reports: {len(reports)}")
+
+    st.success(f"✅ Total saved reports: {len(reports)}")
