@@ -34,3 +34,14 @@ def list_all_reports():
                 full_path = os.path.join(root, f)
                 all_files.append(full_path)
     return sorted(all_files, reverse=True)
+    
+def delete_report(file_path):
+    """Delete a report file safely."""
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return True
+        return False
+    except Exception as e:
+        print(f"Error deleting {file_path}: {e}")
+        return False
