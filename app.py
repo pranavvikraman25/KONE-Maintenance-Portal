@@ -4,27 +4,6 @@ from backend.lang_utils import get_text
 
 
 
-st.markdown("""
-<style>
-/* Make selectbox clearly visible */
-[data-baseweb="select"] {
-    background-color: white !important;
-    color: black !important;
-    border-radius: 8px !important;
-    padding: 4px !important;
-}
-.stSelectbox label {
-    color: black !important;
-    font-weight: 600 !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-
-
-
-
-
 st.set_page_config(page_title="KONE — Maintenance Dashboard", layout="wide")
 
 # Sidebar branding (shown only on Home page)
@@ -227,6 +206,7 @@ st.markdown("""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
