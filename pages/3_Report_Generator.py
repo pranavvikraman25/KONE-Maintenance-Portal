@@ -10,6 +10,9 @@ from docx.enum.section import WD_ORIENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from backend.report_utils import save_report
+import os
+
 
 st.set_page_config(page_title="KPI Word Report — EQ & Date Filters", layout="wide")
 st.title("KPI Report Generator — Filter by EQ & Date Range")
@@ -440,9 +443,31 @@ if st.button("Generate & Download Word Report"):
             buf = BytesIO()
             doc.save(buf)
             buf.seek(0)
+
+            # Define file name and bytes
             file_name = f"KPI_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
-            st.success("Word report ready.")
-            st.download_button("Download Word Report", data=buf, file_name=file_name,
-                               mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+            file_bytes = buf.getvalue()
+
+            # 🔥 Auto-save to backend/reports/Report_Generator/
+            saved_path = save_report(
+                file_bytes,
+                module_name="Report_Generator",
+                filter_label="KPI_Report",
+                extension="docx"
+            )
+
+            # ✅ Show success and confirmation
+            st.success(f"✅ Report generated and saved: {os.path.basename(saved_path)}")
+
+            # Download button
+            st.download_button(
+                "⬇️ Download Word Report",
+                data=file_bytes,
+                file_name=os.path.basename(saved_path),
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
+
         except Exception as e:
             st.error(f"Failed to build report: {e}")
+
+
