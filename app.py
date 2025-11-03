@@ -6,6 +6,15 @@ from backend.lang_utils import get_text
 
 st.set_page_config(page_title="KONE — Maintenance Dashboard", layout="wide")
 
+from backend.lang_utils import get_text, language_selector
+#-------------------------------------------------------------------------------------------
+# Display language selector at top-right (using columns)
+col1, col2 = st.columns([6, 1])
+with col2:
+    language_selector()
+#-------------------------------------------------------------------------------------------
+
+
 # Sidebar branding (shown only on Home page)
 with st.sidebar:
     if os.path.exists("assets/logo.png"):
@@ -206,6 +215,7 @@ st.markdown("""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
