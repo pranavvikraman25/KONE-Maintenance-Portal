@@ -296,9 +296,22 @@ if st.button("✅ Submit and Generate Word Report"):
         buf = BytesIO()
         doc.save(buf)
         buf.seek(0)
+
+        # 🔥 Auto-save report to backend/reports/Maintenance_Tracker/
+        file_bytes = buf.getvalue()
+        saved_path = save_report(
+            file_bytes,
+            module_name="Maintenance_Tracker",
+            filter_label="Maintenance_Report",
+            extension="docx"
+        )
+
+        st.success(f"✅ Report auto-saved to archive: `{os.path.basename(saved_path)}`")
+
+        # 💾 Download button
         st.download_button(
             "💾 Download Maintenance Report (Word)",
-            data=buf,
-            file_name=f"Maintenance_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
+            data=file_bytes,
+            file_name=os.path.basename(saved_path),
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
