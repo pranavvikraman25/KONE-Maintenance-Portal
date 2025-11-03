@@ -47,10 +47,6 @@ Choose a module from the sidebar to get started:
 - **Report Archive** — Access all generated reports  
 """)
 
-st.info("Use the sidebar to navigate between modules.")
-
-
-
 
 
 st.set_page_config(page_title="KONE Predictive Maintenance Portal", layout="wide")
@@ -205,6 +201,7 @@ st.markdown("""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
