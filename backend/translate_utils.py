@@ -1,22 +1,22 @@
 # backend/translate_utils.py
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 import streamlit as st
 
-# Keep one Translator instance in session to avoid repeated initialization
-if "translator" not in st.session_state:
-    st.session_state["translator"] = Translator()
+# Keep translator settings in session
+if "target_lang" not in st.session_state:
+    st.session_state["target_lang"] = "en"
 
 def auto_translate(text: str, target_lang: str = "en") -> str:
     """
-    Translate any string using Google Translate free API.
-    target_lang: 'en', 'fi', 'fr', 'de', 'it', 'zh-cn', etc.
+    Translate text using Deep Translator (Google Translate backend).
+    Compatible with Python 3.13 and Streamlit Cloud.
     """
-    if not text:
-        return ""
-    try:
-        translator = st.session_state["translator"]
-        result = translator.translate(text, dest=target_lang)
-        return result.text
-    except Exception as e:
-        # fallback – return original text if API fails
+    if not text or target_lang == "en":
         return text
+    try:
+        translated = GoogleTranslator(source="auto", target=target_lang).translate(text)
+        return translated
+    except Exception as e:
+        # Fallback: return original text if translation fails
+        return text
+
