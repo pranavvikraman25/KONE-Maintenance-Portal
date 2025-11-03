@@ -7,6 +7,9 @@ import pandas as pd
 import streamlit as st
 import os
 from io import BytesIO
+
+from backend.report_utils import save_report
+import os
 # -----------------------------------------------------------
 
 
@@ -163,26 +166,42 @@ with st.spinner("🔄 Reading uploaded file..."):
     st.dataframe(merged.head(100), use_container_width=True)
     st.success(f"✅ Processed {len(merged)} records successfully!")
 
+   
+
     # Export Excel
-    output_name = "Elevator_KPI_Final_Report.xlsx"
+    output_name = f"Elevator_KPI_Final_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     buffer = io.BytesIO()
+    
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         merged.to_excel(writer, index=False, sheet_name="Final_Report")
     buffer.seek(0)
-
+    excel_bytes = buffer.getvalue()
+    
+    # 🔥 Auto-save to backend/reports/JSON_to_Excel/
+    saved_path = save_report(
+        excel_bytes,
+        module_name="JSON_to_Excel",
+        filter_label="Final_Report",
+        extension="xlsx"
+    )
+    
+    # ✅ Show confirmation + download option
+    st.success(f"✅ Excel Report auto-saved to archive: `{os.path.basename(saved_path)}`")
+    
     st.download_button(
         label="⬇ Download Final Excel Report",
-        data=buffer.getvalue(),
-        file_name=output_name,
+        data=excel_bytes,
+        file_name=os.path.basename(saved_path),
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
+    
     # KPI Summary
     if "Name" in merged.columns:
         st.markdown("### 📈 Summary — Records by KPI")
         summary = merged["Name"].value_counts().reset_index()
         summary.columns = ["KPI Name", "Count"]
         st.table(summary)
+
 
 
 
