@@ -8,6 +8,8 @@ from docx.enum.section import WD_ORIENT
 from docx.shared import Inches
 from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls
+from backend.report_utils import save_report, delete_report, list_all_reports
+import os
 
 st.set_page_config(page_title="Maintenance Tracker", layout="wide")
 st.title("🧰 Maintenance Tracker — Technician Action Center")
