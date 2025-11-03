@@ -11,7 +11,7 @@ from backend.report_utils import save_report  # make sure this import is at the 
 import os
 from backend.report_utils import save_report, delete_report, list_all_reports
 import os
-
+import gc
 
 
 UPLOAD_DIR = "backend/uploads"
@@ -406,3 +406,4 @@ if not report_df.empty:
 else:
     st.info("No action needed for selected filters.")
 
+gc.collect()
