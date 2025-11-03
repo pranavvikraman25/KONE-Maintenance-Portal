@@ -1,80 +1,47 @@
 import streamlit as st
 import os
-from backend.lang_utils import get_text
+from backend.translate_utils import auto_translate  # ✅ use Google Translate
 
-
-
+# ------------------------------------------------------------------------------------------
+# Page Config
 st.set_page_config(page_title="KONE — Maintenance Dashboard", layout="wide")
 
-from backend.lang_utils import get_text, language_selector
-#-------------------------------------------------------------------------------------------
-# Display language selector at top-right (using columns)
+# ------------------------------------------------------------------------------------------
+# 🌐 Language Selector (Top-right corner)
 col1, col2 = st.columns([6, 1])
 with col2:
-    language_selector()
-#-------------------------------------------------------------------------------------------
+    target_lang = st.selectbox(
+        "🌐 Language",
+        ["en", "fi", "fr", "de", "it", "zh-cn"],
+        format_func=lambda x: {
+            "en": "English 🇬🇧",
+            "fi": "Finnish 🇫🇮",
+            "fr": "French 🇫🇷",
+            "de": "German 🇩🇪",
+            "it": "Italian 🇮🇹",
+            "zh-cn": "Chinese 🇨🇳",
+        }[x],
+    )
+    st.session_state["target_lang"] = target_lang
 
+lang = st.session_state.get("target_lang", "en")
 
-# Sidebar branding (shown only on Home page)
+# ------------------------------------------------------------------------------------------
+# Sidebar branding (KONE logo)
 with st.sidebar:
     if os.path.exists("assets/logo.png"):
         st.image("assets/logo.png", width=160)
-    st.markdown("### KONE — Maintenance Dashboard")
+    st.markdown(auto_translate("### KONE — Maintenance Dashboard", lang))
     st.markdown("---")
 
-
-# Initialize language selection in session
-if "lang" not in st.session_state:
-    st.session_state["lang"] = "en"
-
-
-col1, col2 = st.columns([8, 2])  # Left: title area | Right: language box
-
-with col1:
-    st.markdown("### 🌐 KONE Maintenance Dashboard")
-
-with col2:
-    # Language Selector — top right corner
-    lang = st.selectbox(
-        "🌍 Select Language",
-        options=["en", "fi"],
-        format_func=lambda x: "English" if x == "en" else "Suomi (Finnish)",
-        index=0 if st.session_state["lang"] == "en" else 1,
-        label_visibility="collapsed"
-    )
-    st.session_state["lang"] = lang
-
-st.title(get_text(st.session_state["lang"], "home_title"))
-st.info(get_text(st.session_state["lang"], "home_info"))
-
-
-# Main content
-
-st.markdown("""
-This internal dashboard helps monitor and analyze key elevator KPIs.  
-Choose a module from the sidebar to get started:
-- **Trend Analyzer** — Visualize KPI trends and anomalies  
-- **JSON to Excel** — Convert raw data into readable KPI sheets  
-- **Report Generator** — Create maintenance reports  
-- **Maintenance Tracker** — Manage inspection and service logs  
-- **Equipment Health Score** — Evaluate performance and reliability  
-- **Report Archive** — Access all generated reports  
-""")
-
-
-
-st.set_page_config(page_title="KONE Predictive Maintenance Portal", layout="wide")
-
-# ---------- Custom CSS ----------
+# ------------------------------------------------------------------------------------------
+# Custom CSS — KONE Blue Theme
 st.markdown("""
 <style>
-/* Global Styles */
 body {
     background-color: #f8f9fc;
     font-family: "Segoe UI", Roboto, sans-serif;
 }
-
-/* Sidebar Styling */
 [data-testid="stSidebar"] {
     background: linear-gradient(180deg, #003087 0%, #0048AA 100%);
     color: white !important;
@@ -87,8 +54,6 @@ body {
     margin: 20px auto;
     display: block;
 }
-
-/* Hero Header */
 .hero {
     background: linear-gradient(90deg, #003087, #0048AA);
     color: white;
@@ -105,8 +70,6 @@ body {
     font-size: 1.1rem;
     opacity: 0.9;
 }
-
-/* Card Container */
 .card {
     background: white;
     border-radius: 12px;
@@ -126,8 +89,6 @@ body {
     color: #333;
     font-size: 0.95rem;
 }
-
-/* Footer */
 .footer {
     text-align: center;
     margin-top: 3rem;
@@ -139,91 +100,82 @@ body {
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- Hero Section ----------
-st.markdown("""
+# ------------------------------------------------------------------------------------------
+# Hero Section
+st.markdown(f"""
 <div class="hero">
-    <h1> KONE Predictive Maintenance Portal</h1>
-    <p>Welcome to KONE’s centralized AI-driven maintenance dashboard — designed to empower engineering analytics and field maintenance teams.<br>
-    Gain insights, analyze performance, and generate professional reports all in one unified platform.</p>
+    <h1>{auto_translate("KONE Predictive Maintenance Portal", lang)}</h1>
+    <p>{auto_translate("Welcome to KONE’s centralized AI-driven maintenance dashboard — designed to empower engineering analytics and field maintenance teams. Gain insights, analyze performance, and generate professional reports all in one unified platform.", lang)}</p>
 </div>
 """, unsafe_allow_html=True)
 
-# ---------- Available Modules Section ----------
-st.markdown("### >>> Available Modules")
+# ------------------------------------------------------------------------------------------
+# Available Modules
+st.markdown(f"### >>> {auto_translate('Available Modules', lang)}")
 
 cols = st.columns(3)
 with cols[0]:
-    st.markdown("""
+    st.markdown(f"""
     <div class="card">
-        <h3>1️⃣ Trend Analyzer</h3>
-        <p>Visualize CKPI patterns, detect anomalies, and analyze elevator performance using thresholds and peaks.</p>
+        <h3>1️⃣ {auto_translate('Trend Analyzer', lang)}</h3>
+        <p>{auto_translate('Visualize CKPI patterns, detect anomalies, and analyze elevator performance using thresholds and peaks.', lang)}</p>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="card">
-        <h3>2️⃣ JSON ➜ Excel Converter</h3>
-        <p>Convert raw KPI JSON files into structured Excel reports for technician-level readability.</p>
+        <h3>2️⃣ {auto_translate('JSON ➜ Excel Converter', lang)}</h3>
+        <p>{auto_translate('Convert raw KPI JSON files into structured Excel reports for technician-level readability.', lang)}</p>
     </div>
     """, unsafe_allow_html=True)
 
 with cols[1]:
-    st.markdown("""
+    st.markdown(f"""
     <div class="card">
-        <h3>3️⃣ Word Report Generator</h3>
-        <p>Generate clean, formatted Word reports from live cloud data — perfect for inspection documentation.</p>
+        <h3>3️⃣ {auto_translate('Word Report Generator', lang)}</h3>
+        <p>{auto_translate('Generate clean, formatted Word reports from live cloud data — perfect for inspection documentation.', lang)}</p>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="card">
-        <h3>4️⃣ Maintenance Tracker</h3>
-        <p>Track maintenance checks, technician comments, and issue resolutions directly from actionable reports.</p>
+        <h3>4️⃣ {auto_translate('Maintenance Tracker', lang)}</h3>
+        <p>{auto_translate('Track maintenance checks, technician comments, and issue resolutions directly from actionable reports.', lang)}</p>
     </div>
     """, unsafe_allow_html=True)
 
 with cols[2]:
-    st.markdown("""
+    st.markdown(f"""
     <div class="card">
-        <h3>5️⃣ Equipment Health Forecast</h3>
-        <p>Forecast upcoming failures and evaluate unit health using time-series prediction models (Prophet, ARIMA).</p>
+        <h3>5️⃣ {auto_translate('Equipment Health Forecast', lang)}</h3>
+        <p>{auto_translate('Forecast upcoming failures and evaluate unit health using time-series prediction models (Prophet, ARIMA).', lang)}</p>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="card">
-        <h3>6️⃣ Report Archive</h3>
-        <p>Access and download previously generated reports — filtered by date, KPI, or equipment ID.</p>
+        <h3>6️⃣ {auto_translate('Report Archive', lang)}</h3>
+        <p>{auto_translate('Access and download previously generated reports — filtered by date, KPI, or equipment ID.', lang)}</p>
     </div>
     """, unsafe_allow_html=True)
 
-# ---------- How To Use ----------
-st.markdown("### 🧭 How to Use")
-st.markdown("""
+# ------------------------------------------------------------------------------------------
+# How To Use Section
+st.markdown(f"### 🧭 {auto_translate('How to Use', lang)}")
+st.markdown(auto_translate("""
 1. Use the sidebar to navigate between modules.  
 2. Upload your relevant dataset or JSON/Excel file.  
-3. Apply **filters, graphs, and AI modules** to analyze your data.  
+3. Apply filters, graphs, and AI modules to analyze your data.  
 4. Download results or reports for your maintenance workflow.
-""")
+""", lang))
 
-# ---------- Footer ----------
-st.markdown("""
+# ------------------------------------------------------------------------------------------
+# Footer
+st.markdown(f"""
 <div class="footer">
-    © 2025 KONE Digital Maintenance | Developed with ❤️ by 
+    © 2025 {auto_translate('KONE Digital Maintenance', lang)} | {auto_translate('Developed with ❤️ by', lang)} 
     <a href="https://www.linkedin.com/in/pranav-vikraman-322020242/" target="_blank" style="color:#003087; text-decoration:none; font-weight:bold;">
         PRANAV VIKRAMAN S S
     </a>
 </div>
 """, unsafe_allow_html=True)
-
-
-
-
-
-
-
-
-
-
-
-
