@@ -47,14 +47,7 @@ def load_css(file_name):
 load_css("assets/style.css")
 
 # ---------------- Developer Badge & Logo ----------------
-with st.sidebar:
-    try:
-        st.image("assets/logo.png", width=160)
-    except Exception:
-        st.write("")
-    st.markdown("### KONE — Maintenance Dashboard")
-    
-    st.markdown("---")
+
 
 # ---------------- Thresholds (normalized keys) ----------------
 KPI_THRESHOLDS = {
