@@ -1,13 +1,24 @@
 import streamlit as st
-
-import streamlit as st
 import os
-
 from backend.lang_utils import get_text
+
+
+st.set_page_config(page_title="KONE — Maintenance Dashboard", layout="wide")
+
+# Sidebar branding (shown only on Home page)
+with st.sidebar:
+    if os.path.exists("assets/logo.png"):
+        st.image("assets/logo.png", width=160)
+    st.markdown("### KONE — Maintenance Dashboard")
+    st.markdown("---")
+
 
 # Initialize language selection in session
 if "lang" not in st.session_state:
     st.session_state["lang"] = "en"
+
+
+
 
 # Sidebar Language Selector
 with st.sidebar:
@@ -20,14 +31,7 @@ with st.sidebar:
     st.session_state["lang"] = lang
 
 
-st.set_page_config(page_title="KONE — Maintenance Dashboard", layout="wide")
 
-# Sidebar branding (shown only on Home page)
-with st.sidebar:
-    if os.path.exists("assets/logo.png"):
-        st.image("assets/logo.png", width=160)
-    st.markdown("### KONE — Maintenance Dashboard")
-    st.markdown("---")
 
 # Main content
 st.title("Welcome to KONE Maintenance Dashboard")
@@ -200,6 +204,7 @@ st.markdown("""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
