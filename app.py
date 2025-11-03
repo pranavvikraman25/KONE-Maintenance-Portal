@@ -35,7 +35,7 @@ st.info(get_text(st.session_state["lang"], "home_info"))
 
 
 # Main content
-st.title("Welcome to KONE Maintenance Dashboard")
+
 st.markdown("""
 This internal dashboard helps monitor and analyze key elevator KPIs.  
 Choose a module from the sidebar to get started:
@@ -201,6 +201,7 @@ st.markdown("""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
