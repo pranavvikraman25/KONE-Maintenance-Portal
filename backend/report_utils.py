@@ -23,8 +23,8 @@ def save_report(file_bytes, module_name, filter_label=None, extension="xlsx"):
         f.write(file_bytes)
     return file_path
 
-def list_all_reports():
-    """List all reports from all module folders."""
+def list_all_reports(max_reports=50):
+    """List up to max_reports latest reports (prevent too many open files)."""
     all_files = []
     if not os.path.exists(REPORTS_DIR):
         return all_files
@@ -33,7 +33,10 @@ def list_all_reports():
             if not f.startswith("."):
                 full_path = os.path.join(root, f)
                 all_files.append(full_path)
-    return sorted(all_files, reverse=True)
+    # sort by modified time
+    all_files = sorted(all_files, key=os.path.getmtime, reverse=True)
+    return all_files[:max_reports]  # limit to 50 latest reports
+
     
 def delete_report(file_path):
     """Delete a report file safely."""
