@@ -1,17 +1,25 @@
 import streamlit as st
 import os
-from backend.translate_utils import auto_translate  # ✅ use Google Translate
+from backend.translate_utils import auto_translate  # ✅ Uses Google Translate for text
 
 # ------------------------------------------------------------------------------------------
-# Page Config
+# ⚙️ Page Config
 st.set_page_config(page_title="KONE — Maintenance Dashboard", layout="wide")
 
 # ------------------------------------------------------------------------------------------
-# 🌐 Language Selector (Top-right corner)
+# 🌐 Initialize Global Language State
+if "global_lang" not in st.session_state:
+    st.session_state["global_lang"] = "en"  # default = English
+
+# Get the globally selected language
+global_lang = st.session_state["global_lang"]
+
+# ------------------------------------------------------------------------------------------
+# 🌍 Language Selector (Top-right corner)
 col1, col2 = st.columns([6, 1])
 with col2:
-    target_lang = st.selectbox(
-        "🌐 Language",
+    selected_lang = st.selectbox(
+        "🌍 Select Language",
         ["en", "fi", "fr", "de", "it", "zh-CN"],
         format_func=lambda x: {
             "en": "English 🇬🇧",
@@ -21,10 +29,22 @@ with col2:
             "it": "Italian 🇮🇹",
             "zh-CN": "Chinese 🇨🇳",
         }[x],
+        index=["en", "fi", "fr", "de", "it", "zh-CN"].index(global_lang)
     )
-    st.session_state["target_lang"] = target_lang
+    st.session_state["global_lang"] = selected_lang  # Save selected language globally
 
-lang = st.session_state.get("target_lang", "en")
+# Use global language for translations
+lang = st.session_state["global_lang"]
+
+# ------------------------------------------------------------------------------------------
+# ✅ Function: Safe Auto Translate Wrapper
+def tr(text: str):
+    """
+    Shortcut to translate text based on selected language.
+    Example: st.title(tr("Welcome to KONE Dashboard"))
+    """
+    return auto_translate(text, lang)
+
 
 # ------------------------------------------------------------------------------------------
 # Sidebar branding (KONE logo)
@@ -179,4 +199,5 @@ st.markdown(f"""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
