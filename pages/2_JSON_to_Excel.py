@@ -8,9 +8,10 @@ import streamlit as st
 import os
 from io import BytesIO
 from datetime import datetime
-
 from backend.report_utils import save_report
 import os
+import io
+from datetime import datetime    
 # -----------------------------------------------------------
 
 
@@ -169,6 +170,8 @@ with st.spinner("🔄 Reading uploaded file..."):
 
    
 
+    
+    
     # Export Excel
     output_name = f"Elevator_KPI_Final_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     buffer = io.BytesIO()
@@ -178,23 +181,26 @@ with st.spinner("🔄 Reading uploaded file..."):
     buffer.seek(0)
     excel_bytes = buffer.getvalue()
     
-    # 🔥 Auto-save to backend/reports/JSON_to_Excel/
-    saved_path = save_report(
-        excel_bytes,
-        module_name="JSON_to_Excel",
-        filter_label="Final_Report",
-        extension="xlsx"
-    )
+    # ✅ Add a single button to trigger save and download
+    if st.button("💾 Generate & Save Final Excel Report", key="save_json_excel"):
+        # Auto-save
+        saved_path = save_report(
+            excel_bytes,
+            module_name="JSON_to_Excel",
+            filter_label="Final_Report",
+            extension="xlsx"
+        )
     
-    # ✅ Show confirmation + download option
-    st.success(f"✅ Excel Report auto-saved to archive: `{os.path.basename(saved_path)}`")
+        st.success(f"✅ Excel Report saved: `{os.path.basename(saved_path)}`")
     
-    st.download_button(
-        label="⬇ Download Final Excel Report",
-        data=excel_bytes,
-        file_name=os.path.basename(saved_path),
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+        # Download button appears only after save
+        st.download_button(
+            label="⬇ Download Final Excel Report",
+            data=excel_bytes,
+            file_name=os.path.basename(saved_path),
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="download_json_excel"
+        )
     
     # KPI Summary
     if "Name" in merged.columns:
