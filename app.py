@@ -3,6 +3,23 @@ import streamlit as st
 import streamlit as st
 import os
 
+from backend.lang_utils import get_text
+
+# Initialize language selection in session
+if "lang" not in st.session_state:
+    st.session_state["lang"] = "en"
+
+# Sidebar Language Selector
+with st.sidebar:
+    lang = st.selectbox(
+        "🌐 Select Language",
+        options=["en", "fi"],
+        format_func=lambda x: "English" if x == "en" else "Suomi (Finnish)",
+        index=0 if st.session_state["lang"] == "en" else 1
+    )
+    st.session_state["lang"] = lang
+
+
 st.set_page_config(page_title="KONE — Maintenance Dashboard", layout="wide")
 
 # Sidebar branding (shown only on Home page)
@@ -183,6 +200,7 @@ st.markdown("""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
