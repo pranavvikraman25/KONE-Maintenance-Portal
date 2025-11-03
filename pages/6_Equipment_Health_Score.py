@@ -7,6 +7,8 @@ from io import BytesIO
 from sklearn.linear_model import LinearRegression
 import subprocess, shlex
 from datetime import timedelta
+from backend.report_utils import save_report
+import os
 
 # Optional libs
 try:
@@ -406,11 +408,45 @@ if not summary_df.empty:
         else:
             st.info("Ollama returned no summary or error; check logs. Error: " + (err or "unknown"))
 
-# ---------------- Download combined report ----------------
 st.markdown("---")
 st.subheader("📥 Export")
-st.download_button("Download Health (Excel)", data=df_to_excel_bytes(eq_health), file_name="equipment_health.xlsx")
-st.download_button("Download Stats (Excel)", data=df_to_excel_bytes(stats), file_name="kpi_stats.xlsx")
+
+# --- Equipment Health Report ---
+if st.button("📊 Generate & Save Equipment Health Report"):
+    eq_health_bytes = df_to_excel_bytes(eq_health)
+    saved_eq = save_report(
+        eq_health_bytes.getvalue() if hasattr(eq_health_bytes, "getvalue") else eq_health_bytes,
+        module_name="Equipment_Health_Score",
+        filter_label="Health_Report",
+        extension="xlsx"
+    )
+    st.success(f"✅ Equipment Health Report saved: {os.path.basename(saved_eq)}")
+
+    st.download_button(
+        "⬇️ Download Health (Excel)",
+        data=eq_health_bytes,
+        file_name=os.path.basename(saved_eq),
+        key="download_health"
+    )
+
+# --- KPI Stats Report ---
+if st.button("📈 Generate & Save KPI Stats Report"):
+    stats_bytes = df_to_excel_bytes(stats)
+    saved_stats = save_report(
+        stats_bytes.getvalue() if hasattr(stats_bytes, "getvalue") else stats_bytes,
+        module_name="Equipment_Health_Score",
+        filter_label="KPI_Stats",
+        extension="xlsx"
+    )
+    st.success(f"✅ KPI Stats Report saved: {os.path.basename(saved_stats)}")
+
+    st.download_button(
+        "⬇️ Download Stats (Excel)",
+        data=stats_bytes,
+        file_name=os.path.basename(saved_stats),
+        key="download_stats"
+    )
 
 st.caption("© Your Project — Equipment Health & Forecast Portal")
 st.caption("© 2025 KONE Internal Analytics | Developed by PRANAV VIKRAMAN S S")
+
