@@ -8,5 +8,7 @@ python-docx
 xlrd==2.0.1
 openai
 scikit-learn
-googletrans==4.0.0
+googletrans==4.0.0-rc1
+
+
 
