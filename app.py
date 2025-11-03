@@ -1,5 +1,36 @@
 import streamlit as st
 
+import streamlit as st
+import os
+
+st.set_page_config(page_title="KONE — Maintenance Dashboard", layout="wide")
+
+# Sidebar branding (shown only on Home page)
+with st.sidebar:
+    if os.path.exists("assets/logo.png"):
+        st.image("assets/logo.png", width=160)
+    st.markdown("### KONE — Maintenance Dashboard")
+    st.markdown("---")
+
+# Main content
+st.title("Welcome to KONE Maintenance Dashboard")
+st.markdown("""
+This internal dashboard helps monitor and analyze key elevator KPIs.  
+Choose a module from the sidebar to get started:
+- **Trend Analyzer** — Visualize KPI trends and anomalies  
+- **JSON to Excel** — Convert raw data into readable KPI sheets  
+- **Report Generator** — Create maintenance reports  
+- **Maintenance Tracker** — Manage inspection and service logs  
+- **Equipment Health Score** — Evaluate performance and reliability  
+- **Report Archive** — Access all generated reports  
+""")
+
+st.info("Use the sidebar to navigate between modules.")
+
+
+
+
+
 st.set_page_config(page_title="KONE Predictive Maintenance Portal", layout="wide")
 
 # ---------- Custom CSS ----------
@@ -152,5 +183,6 @@ st.markdown("""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
