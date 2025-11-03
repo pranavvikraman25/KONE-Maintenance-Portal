@@ -30,7 +30,8 @@ with st.sidebar:
     )
     st.session_state["lang"] = lang
 
-
+st.title(get_text(st.session_state["lang"], "home_title"))
+st.info(get_text(st.session_state["lang"], "home_info"))
 
 
 # Main content
@@ -204,6 +205,7 @@ st.markdown("""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
