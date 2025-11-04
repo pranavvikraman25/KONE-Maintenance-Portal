@@ -126,7 +126,7 @@ body {
 st.markdown(f"""
 <div class="hero">
     <h1>{auto_translate("KONE Predictive Maintenance Portal", lang)}</h1>
-    <p>{auto_translate("Welcome to KONE’s centralized AI-driven maintenance dashboard — designed to empower engineering analytics and field maintenance teams. Gain insights, analyze performance, and generate professional reports all in one unified platform.", lang)}</p>
+    <p>{auto_translate("Welcome to KONE’s centralized maintenance dashboard — designed to empower engineering analytics and field maintenance teams. Gain insights, analyze performance, and generate professional reports all in one unified platform.", lang)}</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -200,6 +200,7 @@ st.markdown(f"""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
