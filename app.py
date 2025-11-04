@@ -20,13 +20,14 @@ col1, col2 = st.columns([6, 1])
 with col2:
     selected_lang = st.selectbox(
         "🌍 Select Language",
-        ["en", "fi", "fr", "de", "it", "zh-CN"],
+        ["en", "fi", "fr", "de", "it", "sv", "zh-CN"],
         format_func=lambda x: {
             "en": "English 🇬🇧",
             "fi": "Finnish 🇫🇮",
             "fr": "French 🇫🇷",
             "de": "German 🇩🇪",
             "it": "Italian 🇮🇹",
+            "sv": "Swedish 🇸🇪",
             "zh-CN": "Chinese 🇨🇳",
         }[x],
         index=["en", "fi", "fr", "de", "it", "zh-CN"].index(global_lang)
@@ -199,5 +200,6 @@ st.markdown(f"""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
