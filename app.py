@@ -182,7 +182,7 @@ with cols[2]:
 
 # ------------------------------------------------------------------------------------------
 # How To Use Section
-st.markdown(f"### 🧭 {auto_translate('How to Use', lang)}")
+st.markdown(f"### 📌 {auto_translate('How to Use', lang)}")
 st.markdown(auto_translate("""
 1. Use the sidebar to navigate between modules.  
 2. Upload your relevant dataset or JSON/Excel file.  
@@ -200,6 +200,7 @@ st.markdown(f"""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
