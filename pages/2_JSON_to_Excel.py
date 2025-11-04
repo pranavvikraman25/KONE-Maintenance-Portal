@@ -49,8 +49,7 @@ CURRENT_DIR = Path(__file__).parent
 ASSETS_DIR = Path(__file__).parents[1] / "assets"
 LOOKUP_FILE = ASSETS_DIR / "kpid_names.csv"
 
-# Debug info (for troubleshooting — you can comment this later)
-st.caption(f"🔍 Looking for lookup file at: `{LOOKUP_FILE.resolve()}`")
+
 
 # -----------------------------------------------------------
 # HELPER FUNCTIONS
