@@ -402,7 +402,7 @@ if not report_df.empty:
             file_name=os.path.basename(saved_path),
             key="download_btn"
         )
-
+        st.toast("✅ Report saved to archive!", icon="📂")
 else:
     st.info("No action needed for selected filters.")
 
