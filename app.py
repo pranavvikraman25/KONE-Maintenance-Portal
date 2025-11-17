@@ -30,7 +30,7 @@ with col2:
             "sv": "Swedish 🇸🇪",
             "zh-CN": "Chinese 🇨🇳",
         }[x],
-        index=["en", "fi", "fr", "de", "it", "zh-CN"].index(global_lang)
+        index=["en", "fi", "fr", "de", "it", "sv", "zh-CN"].index(global_lang)
     )
     st.session_state["global_lang"] = selected_lang  # Save selected language globally
 
@@ -200,6 +200,7 @@ st.markdown(f"""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
