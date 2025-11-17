@@ -13,7 +13,7 @@ KONE Digital Maintenance • 2025
 
 # KONE Predictive Maintenance Portal
 
-A unified platform for trend analysis, anomaly detection, report generation, and equipment health forecasting.
+# A unified platform for trend analysis, anomaly detection, report generation, and equipment health forecasting.
 
 <br>
 📘 Overview
@@ -278,7 +278,7 @@ Dashboard Home Page
 AI Insights Page
 
 <br>
-# 🤝 Contribution
+🤝 # Contribution
 
 This project is open for learning and enhancements.
 Contributions such as UI improvements, code optimizations, and new modules are welcome.
