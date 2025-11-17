@@ -132,25 +132,3 @@ footer:after {
 
 
 
-/*------------------------side bar colour change--------------------------*/
-
-/* ----- Sidebar Text Fix for Dark Mode ----- */
-[data-testid="stSidebar"] * {
-    color: var(--text-color) !important;
-}
-
-/* Light/Dark mode auto-text */
-:root {
-    --text-color: #fff;          /* dark mode */
-}
-
-body[data-theme="light"] {
-    --text-color: #000;          /* light mode */
-}
-
-/* Active menu item fix */
-[data-testid="stSidebar"] .css-1m7r6nb, 
-[data-testid="stSidebar"] .css-1lcbmhc {
-    background-color: rgba(0,122,255,0.15) !important;
-    border-radius: 8px !important;
-}
