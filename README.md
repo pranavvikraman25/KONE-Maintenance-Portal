@@ -2,9 +2,6 @@ Project Link: https://kone-maintenance-website.streamlit.app/
 
 
 
-
-
-
 © Credits
 
 Developed with dedication by PRANAV VIKRAMAN S S
@@ -14,7 +11,7 @@ KONE Digital Maintenance • 2025
 
 
 
-KONE Predictive Maintenance Portal
+# KONE Predictive Maintenance Portal
 
 A unified platform for trend analysis, anomaly detection, report generation, and equipment health forecasting.
 
