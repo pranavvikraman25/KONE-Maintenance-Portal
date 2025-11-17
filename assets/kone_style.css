@@ -82,3 +82,47 @@ div.stButton > button:hover {
     text-decoration: underline;
 }
 
+
+
+/*-------------------------------Default background--------------------------------*/
+
+/* ===========================
+   THEME FIX — Sidebar Menu Colors
+   Handles both light & dark modes
+   =========================== */
+
+/* Light Mode (default) */
+html[data-theme="light"] [data-testid="stSidebar"] {
+  background: #f6f7f9 !important;
+}
+
+html[data-theme="light"] [data-testid="stSidebar"] a,
+html[data-theme="light"] [data-testid="stSidebar"] .stMarkdown,
+html[data-theme="light"] [data-testid="stSidebar"] .css-1v3fvcr, 
+html[data-theme="light"] [data-testid="stSidebar"] .css-17lntkn, 
+html[data-theme="light"] [data-testid="stSidebar"] p,
+html[data-theme="light"] [data-testid="stSidebar"] span {
+  color: #003087 !important; /* KONE blue text */
+  font-weight: 600 !important;
+}
+
+/* Dark Mode */
+html[data-theme="dark"] [data-testid="stSidebar"] {
+  background: #001e3c !important; /* Deep navy KONE dark background */
+}
+
+html[data-theme="dark"] [data-testid="stSidebar"] a,
+html[data-theme="dark"] [data-testid="stSidebar"] .stMarkdown,
+html[data-theme="dark"] [data-testid="stSidebar"] .css-1v3fvcr, 
+html[data-theme="dark"] [data-testid="stSidebar"] .css-17lntkn,
+html[data-theme="dark"] [data-testid="stSidebar"] p,
+html[data-theme="dark"] [data-testid="stSidebar"] span {
+  color: #f5f5f5 !important; /* Light gray for dark background */
+  font-weight: 600 !important;
+}
+
+/* Menu hover effect (visible in both modes) */
+[data-testid="stSidebar"] a:hover {
+  color: #ffcc00 !important; /* subtle yellow hover */
+  transition: color 0.2s ease;
+}
