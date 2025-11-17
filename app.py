@@ -1,59 +1,55 @@
 import streamlit as st
 import os
-from backend.translate_utils import auto_translate
+from backend.translate_utils import auto_translate  # your translate backend
 
 # ------------------------------------------------------------------------------------------
-# ⚙️ Page Config
+# PAGE CONFIG
 st.set_page_config(page_title="KONE — Maintenance Dashboard", layout="wide")
 
 # ------------------------------------------------------------------------------------------
-# 🌐 Initialize Global Language State
+# GLOBAL LANGUAGE STATE
 if "global_lang" not in st.session_state:
-    st.session_state["global_lang"] = "en"  # default language
+    st.session_state["global_lang"] = "en"
 
-lang = st.session_state["global_lang"]   # current language
+# Shortcut function
+def tr(text: str):
+    """Universal translation wrapper for the entire app."""
+    return auto_translate(text, st.session_state["global_lang"])
 
 # ------------------------------------------------------------------------------------------
-# 🌍 LANGUAGE SELECTOR (Top-right)
+# LANGUAGE SELECTOR
 col1, col2 = st.columns([6, 1])
 with col2:
-    languages = {
+    supported_langs = ["en", "fi", "fr", "de", "it", "sv", "zh-CN"]
+    lang_labels = {
         "en": "English 🇬🇧",
         "fi": "Finnish 🇫🇮",
         "fr": "French 🇫🇷",
         "de": "German 🇩🇪",
         "it": "Italian 🇮🇹",
         "sv": "Swedish 🇸🇪",
-        "zh-CN": "Chinese 🇨🇳"
+        "zh-CN": "Chinese 🇨🇳",
     }
 
     selected_lang = st.selectbox(
-        "🌍 Select Language",
-        list(languages.keys()),
-        format_func=lambda x: languages[x],
-        index=list(languages.keys()).index(lang)
+        "🌍 Language",
+        supported_langs,
+        format_func=lambda x: lang_labels[x],
+        index=supported_langs.index(st.session_state["global_lang"])
     )
 
     st.session_state["global_lang"] = selected_lang
-    lang = selected_lang  # update active language
 
 # ------------------------------------------------------------------------------------------
-# ⭐ Translation Helper
-def tr(text):
-    """Shortcut to translate text dynamically."""
-    return auto_translate(text, lang)
-
-# ------------------------------------------------------------------------------------------
-# 🌐 SIDEBAR
+# SIDEBAR
 with st.sidebar:
     if os.path.exists("assets/logo.png"):
         st.image("assets/logo.png", width=160)
-
     st.markdown(f"### {tr('KONE — Maintenance Dashboard')}")
-    st.markdown("---")
+    st.write("---")
 
 # ------------------------------------------------------------------------------------------
-# ⭐ CSS (kept EXACTLY as yours)
+# CSS — DO NOT MODIFY
 st.markdown("""
 <style>
 body {
@@ -82,11 +78,9 @@ body {
 .hero h1 {
     font-size: 2rem;
     font-weight: 700;
-    letter-spacing: 0.5px;
 }
 .hero p {
     font-size: 1.1rem;
-    opacity: 0.9;
 }
 .card {
     background: white;
@@ -101,16 +95,11 @@ body {
 }
 .card h3 {
     color: #003087;
-    margin-bottom: 0.5rem;
-}
-.card p {
-    color: #333;
-    font-size: 0.95rem;
 }
 .footer {
     text-align: center;
     margin-top: 3rem;
-    padding: 1rem 0;
+    padding: 1rem;
     color: #888;
     font-size: 0.85rem;
     border-top: 1px solid #ddd;
@@ -119,7 +108,7 @@ body {
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------------------
-# ⭐ HERO SECTION
+# HERO SECTION
 st.markdown(f"""
 <div class="hero">
     <h1>{tr("KONE Predictive Maintenance Portal")}</h1>
@@ -128,12 +117,11 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------------------
-# ⭐ MODULE CARDS
+# AVAILABLE MODULES
 st.markdown(f"### >>> {tr('Available Modules')}")
 
 cols = st.columns(3)
 
-# COLUMN 1
 with cols[0]:
     st.markdown(f"""
     <div class="card">
@@ -149,7 +137,6 @@ with cols[0]:
     </div>
     """, unsafe_allow_html=True)
 
-# COLUMN 2
 with cols[1]:
     st.markdown(f"""
     <div class="card">
@@ -165,7 +152,6 @@ with cols[1]:
     </div>
     """, unsafe_allow_html=True)
 
-# COLUMN 3
 with cols[2]:
     st.markdown(f"""
     <div class="card">
@@ -182,7 +168,7 @@ with cols[2]:
     """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------------------
-# ⭐ HOW TO USE
+# HOW TO USE
 st.markdown(f"### 📌 {tr('How to Use')}")
 st.markdown(tr("""
 1. Use the sidebar to navigate between modules.  
@@ -192,13 +178,13 @@ st.markdown(tr("""
 """))
 
 # ------------------------------------------------------------------------------------------
-# ⭐ FOOTER
+# FOOTER
 st.markdown(f"""
 <div class="footer">
     © 2025 {tr('KONE Digital Maintenance')} | {tr('Developed with ❤️ by')} 
-    <a href="https://www.linkedin.com/in/pranav-vikraman-322020242/" 
-       target="_blank" style="color:#003087; text-decoration:none; font-weight:bold;">
-       PRANAV VIKRAMAN S S
+    <a href="https://www.linkedin.com/in/pranav-vikraman-322020242/" target="_blank" 
+    style="color:#003087; text-decoration:none; font-weight:bold;">
+        PRANAV VIKRAMAN S S
     </a>
 </div>
 """, unsafe_allow_html=True)
