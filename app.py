@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-from backend.translate_utils import auto_translate  # ✅ Uses Google Translate for text
+from backend.translate_utils import auto_translate
 
 # ------------------------------------------------------------------------------------------
 # ⚙️ Page Config
@@ -9,51 +9,51 @@ st.set_page_config(page_title="KONE — Maintenance Dashboard", layout="wide")
 # ------------------------------------------------------------------------------------------
 # 🌐 Initialize Global Language State
 if "global_lang" not in st.session_state:
-    st.session_state["global_lang"] = "en"  # default = English
+    st.session_state["global_lang"] = "en"  # default language
 
-# Get the globally selected language
-global_lang = st.session_state["global_lang"]
+lang = st.session_state["global_lang"]   # current language
 
 # ------------------------------------------------------------------------------------------
-# 🌍 Language Selector (Top-right corner)
+# 🌍 LANGUAGE SELECTOR (Top-right)
 col1, col2 = st.columns([6, 1])
 with col2:
+    languages = {
+        "en": "English 🇬🇧",
+        "fi": "Finnish 🇫🇮",
+        "fr": "French 🇫🇷",
+        "de": "German 🇩🇪",
+        "it": "Italian 🇮🇹",
+        "sv": "Swedish 🇸🇪",
+        "zh-CN": "Chinese 🇨🇳"
+    }
+
     selected_lang = st.selectbox(
         "🌍 Select Language",
-        ["en", "fi", "fr", "de", "it", "sv", "zh-CN"],
-        format_func=lambda x: {
-            "en": "English 🇬🇧",
-            "fi": "Finnish 🇫🇮",
-            "fr": "French 🇫🇷",
-            "de": "German 🇩🇪",
-            "it": "Italian 🇮🇹",
-            "sv": "Swedish 🇸🇪",
-            "zh-CN": "Chinese 🇨🇳",
-        }[x],
-        index=["en", "fi", "fr", "de", "it", "zh-CN"].index(global_lang)
+        list(languages.keys()),
+        format_func=lambda x: languages[x],
+        index=list(languages.keys()).index(lang)
     )
-    st.session_state["global_lang"] = selected_lang  # Save selected language globally
 
-# Use global language for translations
-lang = st.session_state["global_lang"]
+    st.session_state["global_lang"] = selected_lang
+    lang = selected_lang  # update active language
 
 # ------------------------------------------------------------------------------------------
-# ✅ Function: Safe Auto Translate Wrapper
+# ⭐ Translation Helper
 def tr(text):
-    return auto_translate(text, st.session_state.get("global_lang", "en"))
-
-
+    """Shortcut to translate text dynamically."""
+    return auto_translate(text, lang)
 
 # ------------------------------------------------------------------------------------------
-# Sidebar branding (KONE logo)
+# 🌐 SIDEBAR
 with st.sidebar:
     if os.path.exists("assets/logo.png"):
         st.image("assets/logo.png", width=160)
-    st.markdown(auto_translate("### KONE — Maintenance Dashboard", lang))
+
+    st.markdown(f"### {tr('KONE — Maintenance Dashboard')}")
     st.markdown("---")
 
 # ------------------------------------------------------------------------------------------
-# Custom CSS — KONE Blue Theme
+# ⭐ CSS (kept EXACTLY as yours)
 st.markdown("""
 <style>
 body {
@@ -119,86 +119,86 @@ body {
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------------------
-# Hero Section
+# ⭐ HERO SECTION
 st.markdown(f"""
 <div class="hero">
-    <h1>{auto_translate("KONE Predictive Maintenance Portal", lang)}</h1>
-    <p>{auto_translate("Welcome to KONE’s centralized maintenance dashboard — designed to empower engineering analytics and field maintenance teams. Gain insights, analyze performance, and generate professional reports all in one unified platform.", lang)}</p>
+    <h1>{tr("KONE Predictive Maintenance Portal")}</h1>
+    <p>{tr("Welcome to KONE’s centralized maintenance dashboard — designed to empower engineering analytics and field maintenance teams. Gain insights, analyze performance, and generate professional reports all in one unified platform.")}</p>
 </div>
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------------------
-# Available Modules
-st.markdown(f"### >>> {auto_translate('Available Modules', lang)}")
+# ⭐ MODULE CARDS
+st.markdown(f"### >>> {tr('Available Modules')}")
 
 cols = st.columns(3)
+
+# COLUMN 1
 with cols[0]:
     st.markdown(f"""
     <div class="card">
-        <h3>1️⃣ {auto_translate('Trend Analyzer', lang)}</h3>
-        <p>{auto_translate('Visualize CKPI patterns, detect anomalies, and analyze elevator performance using thresholds and peaks.', lang)}</p>
+        <h3>1️⃣ {tr('Trend Analyzer')}</h3>
+        <p>{tr('Visualize CKPI patterns, detect anomalies, and analyze elevator performance using thresholds and peaks.')}</p>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown(f"""
     <div class="card">
-        <h3>2️⃣ {auto_translate('JSON ➜ Excel Converter', lang)}</h3>
-        <p>{auto_translate('Convert raw KPI JSON files into structured Excel reports for technician-level readability.', lang)}</p>
+        <h3>2️⃣ {tr('JSON ➜ Excel Converter')}</h3>
+        <p>{tr('Convert raw KPI JSON files into structured Excel reports for technician-level readability.')}</p>
     </div>
     """, unsafe_allow_html=True)
 
+# COLUMN 2
 with cols[1]:
     st.markdown(f"""
     <div class="card">
-        <h3>3️⃣ {auto_translate('Word Report Generator', lang)}</h3>
-        <p>{auto_translate('Generate clean, formatted Word reports from live cloud data — perfect for inspection documentation.', lang)}</p>
+        <h3>3️⃣ {tr('Word Report Generator')}</h3>
+        <p>{tr('Generate clean, formatted Word reports from live cloud data — perfect for inspection documentation.')}</p>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown(f"""
     <div class="card">
-        <h3>4️⃣ {auto_translate('Maintenance Tracker', lang)}</h3>
-        <p>{auto_translate('Track maintenance checks, technician comments, and issue resolutions directly from actionable reports.', lang)}</p>
+        <h3>4️⃣ {tr('Maintenance Tracker')}</h3>
+        <p>{tr('Track maintenance checks, technician comments, and issue resolutions directly from actionable reports.')}</p>
     </div>
     """, unsafe_allow_html=True)
 
+# COLUMN 3
 with cols[2]:
     st.markdown(f"""
     <div class="card">
-        <h3>5️⃣ {auto_translate('Equipment Health Forecast', lang)}</h3>
-        <p>{auto_translate('Forecast upcoming failures and evaluate unit health using time-series prediction models (Prophet, ARIMA).', lang)}</p>
+        <h3>5️⃣ {tr('Equipment Health Forecast')}</h3>
+        <p>{tr('Forecast upcoming failures and evaluate unit health using time-series prediction models (Prophet, ARIMA).')}</p>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown(f"""
     <div class="card">
-        <h3>6️⃣ {auto_translate('Report Archive', lang)}</h3>
-        <p>{auto_translate('Access and download previously generated reports — filtered by date, KPI, or equipment ID.', lang)}</p>
+        <h3>6️⃣ {tr('Report Archive')}</h3>
+        <p>{tr('Access and download previously generated reports — filtered by date, KPI, or equipment ID.')}</p>
     </div>
     """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------------------
-# How To Use Section
-st.markdown(f"### 📌 {auto_translate('How to Use', lang)}")
-st.markdown(auto_translate("""
+# ⭐ HOW TO USE
+st.markdown(f"### 📌 {tr('How to Use')}")
+st.markdown(tr("""
 1. Use the sidebar to navigate between modules.  
 2. Upload your relevant dataset or JSON/Excel file.  
 3. Apply filters, graphs, and AI modules to analyze your data.  
 4. Download results or reports for your maintenance workflow.
-""", lang))
+"""))
 
 # ------------------------------------------------------------------------------------------
-# Footer
+# ⭐ FOOTER
 st.markdown(f"""
 <div class="footer">
-    © 2025 {auto_translate('KONE Digital Maintenance', lang)} | {auto_translate('Developed with ❤️ by', lang)} 
-    <a href="https://www.linkedin.com/in/pranav-vikraman-322020242/" target="_blank" style="color:#003087; text-decoration:none; font-weight:bold;">
-        PRANAV VIKRAMAN S S
+    © 2025 {tr('KONE Digital Maintenance')} | {tr('Developed with ❤️ by')} 
+    <a href="https://www.linkedin.com/in/pranav-vikraman-322020242/" 
+       target="_blank" style="color:#003087; text-decoration:none; font-weight:bold;">
+       PRANAV VIKRAMAN S S
     </a>
 </div>
 """, unsafe_allow_html=True)
-
-
-
-
-
