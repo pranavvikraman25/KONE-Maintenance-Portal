@@ -107,3 +107,42 @@ div.stButton > button:hover {
     height: 40px !important;
 }
 
+
+
+
+
+
+
+/* ===========================================
+   FORCE SIDEBAR STYLING IN BOTH LIGHT & DARK
+   Ensures visibility across ALL Streamlit pages
+   =========================================== */
+
+[data-testid="stSidebar"],
+.css-1d391kg,
+.css-1544g2n,
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #003087 0%, #0048AA 100%) !important;
+    color: white !important;
+}
+
+[data-testid="stSidebar"] *,
+.css-1d391kg *,
+.css-1544g2n *,
+section[data-testid="stSidebar"] * {
+    color: white !important;
+    font-weight: 500 !important;
+}
+
+/* Highlight the active (selected) sidebar item */
+[data-testid="stSidebar"] .css-17eq0hr,
+[data-testid="stSidebar"] .css-h5rgaw,
+[data-testid="stSidebar"] .stButton button:hover {
+    background-color: rgba(255,255,255,0.18) !important;
+    border-radius: 6px !important;
+}
+
+/* Force transparency fix so Trend Analyzer does NOT turn white */
+[data-testid="stSidebar"]::before {
+    background: transparent !important;
+}
