@@ -263,7 +263,7 @@ CSV
 JSON (single document or list of objects)
 
 <br>
-🖼 Screenshots (Recommended)
+# 🖼 Screenshots (Recommended)
 
 Add clean screenshots of each module for better clarity:
 
@@ -278,13 +278,13 @@ Dashboard Home Page
 AI Insights Page
 
 <br>
-🤝 Contribution
+# 🤝 Contribution
 
 This project is open for learning and enhancements.
 Contributions such as UI improvements, code optimizations, and new modules are welcome.
 
 <br>
-👤 Developer
+# 👤 Developer
 
 PRANAV VIKRAMAN S S
 Engineering Student — Electronics & Communication
