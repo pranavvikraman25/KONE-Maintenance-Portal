@@ -1,3 +1,12 @@
+html {
+    color-scheme: light !important;
+    forced-color-adjust: none !important;
+}
+* {
+    background-color: inherit !important;
+}
+
+
 /* === GLOBAL STYLE === */
 body {
     background-color: #f8f9fc;
