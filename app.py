@@ -66,9 +66,6 @@ html {
 * {
     background-color: inherit !important;
 }
-...
-</style>
-""", unsafe_allow_html=True)
 
 body {
     background-color: #f8f9fc;
@@ -211,6 +208,7 @@ st.markdown(f"""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
