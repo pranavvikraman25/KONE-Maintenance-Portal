@@ -83,4 +83,18 @@ div.stButton > button:hover {
 }
 
 
+/* === FIX MODULE GRID LAYOUT (Always 3 columns) === */
+
+.dashboard-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 25px !important;
+    margin-top: 20px !important;
+}
+
+
+/* === SPACE BETWEEN ROWS OF DASHBOARD CARDS === */
+.row-gap {
+    height: 40px !important;
+}
 
