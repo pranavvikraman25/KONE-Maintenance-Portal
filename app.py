@@ -59,6 +59,17 @@ with st.sidebar:
 # Custom CSS — KONE Blue Theme
 st.markdown("""
 <style>
+html {
+    color-scheme: light !important;
+    forced-color-adjust: none !important;
+}
+* {
+    background-color: inherit !important;
+}
+...
+</style>
+""", unsafe_allow_html=True)
+
 body {
     background-color: #f8f9fc;
     font-family: "Segoe UI", Roboto, sans-serif;
@@ -200,6 +211,7 @@ st.markdown(f"""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
