@@ -1,3 +1,4 @@
+
 /* === GLOBAL STYLE === */
 body {
     background-color: #f8f9fc;
@@ -80,26 +81,4 @@ div.stButton > button:hover {
 .footer a:hover {
     color: #007BFF;
     text-decoration: underline;
-}
-
-
-/* === FIX MODULE GRID LAYOUT (Always 3 columns) === */
-
-.dashboard-grid {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 25px !important;
-    margin-top: 20px !important;
-}
-
-
-/* === SPACE BETWEEN ROWS OF DASHBOARD CARDS === */
-.row-gap {
-    height: 40px !important;
-}
-
-
-/* Force transparency fix so Trend Analyzer does NOT turn white */
-[data-testid="stSidebar"]::before {
-    background: transparent !important;
 }
