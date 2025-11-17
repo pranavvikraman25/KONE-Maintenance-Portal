@@ -39,12 +39,9 @@ lang = st.session_state["global_lang"]
 
 # ------------------------------------------------------------------------------------------
 # ✅ Function: Safe Auto Translate Wrapper
-def tr(text: str):
-    """
-    Shortcut to translate text based on selected language.
-    Example: st.title(tr("Welcome to KONE Dashboard"))
-    """
-    return auto_translate(text, lang)
+def tr(text):
+    return auto_translate(text, st.session_state.get("global_lang", "en"))
+
 
 
 # ------------------------------------------------------------------------------------------
@@ -200,6 +197,7 @@ st.markdown(f"""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
