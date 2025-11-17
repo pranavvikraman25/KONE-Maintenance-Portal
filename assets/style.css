@@ -4,32 +4,14 @@
    Theme: KONE Blue & White (Corporate Standard)
    ============================================ */
 
-/*DARK MODE FIX FOR SIDEBAR*/
-
-/*Detect DARK MODE and adapt text colors*/
-html[data-theme="dark"] [data-testid="stSidebar"] {
-    background-color: #0d1117 !important;
-}
-
-html[data-theme="dark"] [data-testid="stSidebar"] * {
-    color: #ffffff !important;
-}
-
-/*Active menu highlight*/
-html[data-theme="dark"] [data-testid="stSidebar"] .sidebar-content button[aria-current="page"] {
-    background-color: rgba(0, 123, 255, 0.25) !important;
-    border-radius: 6px !important;
-}
-
-
-/*Global font & background*/
+/* === Global font & background === */
 body {
     background-color: #f8f9fa;
     color: #0b2545;
     font-family: "Segoe UI", "Helvetica Neue", sans-serif;
 }
 
-/*Sidebar*/
+/* === Sidebar === */
 [data-testid="stSidebar"] {
     background-color: #ffffff !important;
     border-right: 3px solid #0071B9;
@@ -42,7 +24,7 @@ body {
     color: #0071B9 !important;
 }
 
-/*Sidebar filters and widgets*/
+/* Sidebar filters and widgets */
 .stSelectbox, .stMultiSelect, .stDateInput {
     font-size: 15px !important;
 }
@@ -51,7 +33,7 @@ body {
     border: 1px solid #0071B9 !important;
 }
 
-/*Main title*/
+/* === Main title === */
 h1 {
     color: #0071B9;
     font-weight: 700;
@@ -60,33 +42,33 @@ h1 {
     text-align: center;
 }
 
-/*Subheaders*/
+/* === Subheaders === */
 h2, h3, h4 {
     color: #005b96;
     font-weight: 600;
 }
 
-/*Charts container*/
+/* === Charts container === */
 .block-container {
     padding-top: 2rem !important;
     padding-bottom: 3rem !important;
 }
 
-/*DataFrame (Actionable Report, Tables)*/
+/* === DataFrame (Actionable Report, Tables) === */
 [data-testid="stDataFrame"] {
     border: 2px solid #0071B9;
     border-radius: 10px;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
 }
 
-/*Table header*/
+/* Table header */
 [data-testid="stTable"] th {
     background-color: #0071B9 !important;
     color: white !important;
     font-weight: bold !important;
 }
 
-/*Buttons*/
+/* === Buttons === */
 button[kind="primary"],
 .stDownloadButton > button {
     background-color: #0071B9 !important;
@@ -104,14 +86,14 @@ button[kind="primary"]:hover,
     transform: translateY(-1px);
 }
 
-/*Info / Warning / Success boxes*/
+/* === Info / Warning / Success boxes === */
 [data-testid="stAlert"] {
     border-radius: 8px !important;
     border-left: 6px solid #0071B9 !important;
     background-color: #eaf3fb !important;
 }
 
-/*Footer*/
+/* === Footer === */
 footer {
     visibility: hidden;
 }
@@ -126,7 +108,7 @@ footer:after {
     padding: 1rem 0;
 }
 
-/*Scrollbar styling*/
+/* === Scrollbar styling === */
 ::-webkit-scrollbar {
     width: 8px;
 }
@@ -138,7 +120,7 @@ footer:after {
     background: #005b96;
 }
 
-/*Hover glow for charts*/
+/* === Hover glow for charts === */
 .js-plotly-plot {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
