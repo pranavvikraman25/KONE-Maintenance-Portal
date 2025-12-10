@@ -14,8 +14,8 @@ if "global_lang" not in st.session_state:
 # Get the globally selected language
 global_lang = st.session_state["global_lang"]
 
-# ------------------------------------------------------------------------------------------
-# 🌍 Language Selector (Top-right corner)
+# ---------------------------------------
+# 🌍 Language Selector (Top-right corner for easy access)
 col1, col2 = st.columns([6, 1])
 with col2:
     selected_lang = st.selectbox(
@@ -190,7 +190,7 @@ st.markdown(auto_translate("""
 4. Download results or reports for your maintenance workflow.
 """, lang))
 
-# ------------------------------------------------------------------------------------------
+# ---------------------------------------------------
 # Footer
 st.markdown(f"""
 <div class="footer">
@@ -200,6 +200,7 @@ st.markdown(f"""
     </a>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
